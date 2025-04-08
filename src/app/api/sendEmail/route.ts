@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { enviarEmail } from '@/app/app/actions/enviaEmail';
+import { enviarEmail } from '@/app/(app)/actions/enviaEmail';
 
 export async function POST(req: NextRequest) {
   const { para, assunto, corpoTexto, corpoHtml } = await req.json();

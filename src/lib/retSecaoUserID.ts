@@ -1,9 +1,6 @@
 import { getServerSession } from "next-auth"
 import { auth as authOptions } from "@/lib/auth-config";
 
-
-
-
  async function retId() {
    const session = await getServerSession(authOptions);
   if(session) {

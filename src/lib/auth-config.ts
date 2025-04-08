@@ -1,4 +1,4 @@
-// // src/lib/auth-config.ts
+// src/lib/auth-config.ts
 
 import CredentialsProvider from "next-auth/providers/credentials";
 import { NextAuthOptions } from "next-auth";
@@ -6,7 +6,7 @@ import { NextAuthOptions } from "next-auth";
 export const auth: NextAuthOptions = {
   
   pages: {
-    signIn: "/app/",
+    signIn: "/login",
   },
   providers: [
     CredentialsProvider({

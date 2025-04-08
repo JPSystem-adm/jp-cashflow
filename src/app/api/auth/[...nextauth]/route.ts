@@ -1,3 +1,5 @@
+// src/app/api/auth/[...nextauth]/route.ts
+
 import {auth as authOptions} from '@/lib/auth-config'
 import NextAuth from "next-auth"
 

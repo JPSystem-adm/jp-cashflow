@@ -29,7 +29,7 @@ export function middleware(req: NextRequest) {
   }
 
   // Se tem subdomínio válido, manda para o app
-  url.pathname = "/app";
+  url.pathname = "/";
   return NextResponse.rewrite(url);
 }
 

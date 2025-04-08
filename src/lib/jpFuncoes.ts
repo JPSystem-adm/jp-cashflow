@@ -86,7 +86,7 @@ const corpo:string = `
         .section-padding {
           padding: 0 15px 50px 15px !important;
         }
-      }
+      }  
       .destaque{
         padding: 0 0 0 0;
         font-size: 16px;

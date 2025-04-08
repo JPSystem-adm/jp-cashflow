@@ -37,3 +37,7 @@ next-env.d.ts
 
 # Banco de dados
 dev.db
+
+# Teste Requests
+/requests
+*.http

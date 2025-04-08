@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-import './middleware/logger.js';
+//import './middleware/logger.js';
 
 const nextConfig = {
   webpack: (config, { isServer }) => {

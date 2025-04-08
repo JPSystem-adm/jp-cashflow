@@ -30,6 +30,6 @@
     ".next/types/**/*.ts",
     "src/**/*.ts",
     "src/**/*.tsx"
-, "src/lib/db.ts", "middleware/logger.js"  ],
+, "src/lib/db.ts", "src/middleware/logger.js"  ],
   "exclude": ["node_modules", "dist"]
 }

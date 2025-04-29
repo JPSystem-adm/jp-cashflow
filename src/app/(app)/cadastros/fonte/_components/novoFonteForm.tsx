@@ -15,7 +15,7 @@ import { FaChevronDown } from "react-icons/fa";
 import { CreateFonte } from "@/app/(app)/actions/fonteActions";
 import { tipoFonte, tyFonte, tyResult } from "@/types/types";
 import queryClient from "@/lib/reactQuery";
-import { WarningBox, tipoEnu } from "@/app/_components/warningBox";
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 import {useSession } from "next-auth/react"
 
 // Definição do objeto ZOD de validação

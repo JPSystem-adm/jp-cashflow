@@ -38,6 +38,7 @@ declare module "next-auth/jwt" {
 export type DecodedToken = {
   id: string;
   login: string;
+  nome: string;
   perfil: "admin" | "default" | "plus" | "premium";
   iat?: number;
   exp?: number;

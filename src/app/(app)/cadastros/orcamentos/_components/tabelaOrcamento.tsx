@@ -1,6 +1,6 @@
 "use client";
 
-import { FileEditIcon } from "@/app/_components/iconsForm";
+import { FileEditIcon } from "@/app/(app)/_components/iconsForm";
 import { Button } from "@/components/ui/button";
 import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table} from "@/components/ui/table";
 import { useOrcamentoContext } from "./contextProvider";

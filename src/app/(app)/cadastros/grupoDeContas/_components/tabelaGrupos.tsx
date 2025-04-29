@@ -5,12 +5,12 @@ import { CardContent, Card } from "@/components/ui/card";
 import { useQuery} from 'react-query';
 import queryClient from "@/lib/reactQuery";
 import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table, } from "@/components/ui/table";
-import { FileEditIcon, TrashIcon } from "@/app/_components/iconsForm";
+import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import { DeleteGrupo, RetGrupo, RetGrupos } from "@/app/(app)/actions/grupoActions";
 import { tyGrupo, tyGrupoLista, tipoGrupo } from "@/types/types";
 import { useState } from "react";
 import EditaGrupoForm from "./editaGrupo";
-import ConfirmationBox from "@/app/_components/confirmationBox";
+import ConfirmationBox from "@/app/(app)/_components/confirmationBox";
 
 interface Props {
   userIdSession: number | undefined;

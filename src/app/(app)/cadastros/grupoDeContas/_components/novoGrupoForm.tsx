@@ -15,7 +15,7 @@ import { FaChevronDown } from "react-icons/fa";
 import { NovoGrupoComSubgrupos } from "@/app/(app)/actions/grupoActions";
 import { tyGrupo, tySubGrupo, tyResult, tipoGrupo } from "@/types/types";
 import queryClient from "@/lib/reactQuery";
-import { WarningBox, tipoEnu } from "@/app/_components/warningBox";
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 import {useSession } from "next-auth/react"
 import TabelaSubGrupos from "./tabelaSubGrupos";
 

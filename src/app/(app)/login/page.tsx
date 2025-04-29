@@ -1,37 +1,45 @@
-// src/app/app/login/page.tsx
+// src/app/(app)/login/page.tsx
 
-import { getServerSession } from "next-auth";
-import { auth as authOptions } from "@/lib/auth-config";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import LoginForm from "../_components/loginForm";
 import dynamic from "next/dynamic";
+import LoginForm from "../_components/loginForm";
+import { getBaseUrl } from "@/lib/getBaseUrl";
+import { decodeToken } from "@/lib/decodeToken";
 
-// 🟡 Carrega o ForceLogout só no client (evita erro de hydration)
+// 🔁 Apenas no client
 const ForceLogout = dynamic(() => import("../_components/ForceLogout"), { ssr: false });
 
-
 export default async function LoginPage({ searchParams }: { searchParams?: { user?: string } }) {
-  const session = await getServerSession(authOptions);
   const urlUser = searchParams?.user?.toUpperCase();
+  const cookieStore = cookies();
+  const token = cookieStore.get("token")?.value;
+  const user = token ? decodeToken(token) : null;
 
-  // 1️⃣ Se não veio "user" na URL, manda sempre pra /home
-  if (!urlUser) {
-    redirect("/home");
+  console.log("🔥 Entrando na LoginPage");
+  console.log("🔥 Token:", token);
+  console.log("🔥 URL User:", urlUser);
+  console.log("🔥 User:", user);
+
+  // 🔒 Proteção extra: se já logado e tentando acessar o login sem user → bloqueia loop
+  if (user && !urlUser) {
+    console.log("⛔️ Já logado e sem ?user → redirect para /dashboard");
+    redirect(`${getBaseUrl()}/dashboard`);
   }
 
-  // 2️⃣ Se estiver logado...
-  if (session?.user) {
-    const loggedUser = session.user?.nickname?.toUpperCase();
+  // 🔁 Se estiver logado e acessando com o mesmo usuário, segue para o dashboard
+  if (user) {
+    const loggedUser = user.login?.toUpperCase();
 
-    if (loggedUser === urlUser) {
-      // 2a. Logado com o mesmo user → manda pro /dashboard
-      redirect("/dashboard");
+    if (!urlUser || loggedUser === urlUser) {
+      console.log("✅ Usuário autenticado corretamente → redirecionando para dashboard");
+      redirect(`${getBaseUrl()}/dashboard`);
     } else {
-      // 2b. Logado com user diferente → derruba a sessão
-      return <ForceLogout user={urlUser} />;
+      console.log("⚠️ Tentativa de login como outro usuário → forçando logout");
+      return <ForceLogout user={urlUser || ""} />;
     }
   }
 
-  // 3️⃣ Se não estiver logado, mostra o login com o usuário preenchido
+  // 🔓 Usuário não autenticado → exibe o formulário de login
   return <LoginForm defaultLogin={urlUser} />;
 }

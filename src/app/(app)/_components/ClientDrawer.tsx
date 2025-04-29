@@ -1,5 +1,7 @@
 "use client";
 
+// 📌 Esse é o componente de menu lateral
+
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

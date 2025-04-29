@@ -2,13 +2,13 @@ import Link from "next/link";
 import { SocialIcon } from "react-social-icons";
 import Image from "next/image";
 import ActivityIcon from "../_components/ActivityIcon";
-import { getServerSession } from "next-auth";
-import { auth as authOptions } from "@/lib/auth-config";
+//import { getServerSession } from "next-auth";
+//import { auth as authOptions } from "@/lib/auth-config";
 import LogoutButton from "../_components/logoutButton";
 import Logo from "public/JPSystem_logo.png";
 
 export default async function Rodape() {
-  const session = await getServerSession(authOptions);
+  //const session = await getServerSession(authOptions);
 
   return (
     <footer className="fixed bottom-0 left-0 w-full h-14 px-4 bg-sky-900 border-t dark:border-gray-700 flex items-center z-10">
@@ -49,7 +49,7 @@ export default async function Rodape() {
             network="youtube"
           />
         </div>
-        {session && (
+        {/* {session && (
           <LogoutButton
             size="lg"
             text="Logout"
@@ -60,7 +60,7 @@ export default async function Rodape() {
               border-r 
               border-sky-50`}
           />
-        )}
+        )} */}
       </div>
     </footer>
   );

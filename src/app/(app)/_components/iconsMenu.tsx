@@ -16,10 +16,10 @@ import {
 
 import { RiFileExcel2Fill } from "react-icons/ri";
 
-import { useSession } from "next-auth/react";
+//import { useSession } from "next-auth/react";
 
 export function IconHome(props: any) {
-  const { data: session } = useSession();
+  //const { data: session } = useSession();
   return (
     <>
       <LuHome {...props} />

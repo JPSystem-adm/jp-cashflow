@@ -12,10 +12,10 @@ import {
   TableBody,
   Table,
 } from "@/components/ui/table";
-import { FileEditIcon, TrashIcon } from "@/app/_components/iconsForm";
+import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import { DeleteFontes, ListaFontes } from "@/app/(app)/actions/fonteActions";
 import { useSession } from "next-auth/react";
-import ConfirmationBox from "@/app/_components/confirmationBox";
+import ConfirmationBox from "@/app/(app)/_components/confirmationBox";
 import { useState } from "react";
 import EditaFonteForm from "./editaFonte";
 import { tyFonte } from "@/types/types";

@@ -1,12 +1,20 @@
+"use client";
+import React from "react";
 import Link from "next/link";
 import ActivityIcon from "../_components/ActivityIcon";
-import { getServerSession } from "next-auth";
-import { auth as authOptions } from "@/lib/auth-config";
+//import { getServerSession } from "next-auth";
+//import { auth as authOptions } from "@/lib/auth-config";
 import UserCircleIcon from "../_components/UserCircleIcon";
 import Periodo from "./periodo";
 
-export default async function Cabecalho() {
-  const session = await getServerSession(authOptions);
+import { useGlobalContext } from "@/app/(app)/contextGlobal";
+
+export default function Cabecalho() {
+
+  //const session = await getServerSession(authOptions);
+  const { usuarioNome, usuarioPerfil } = useGlobalContext();
+  const isLogged = !!usuarioNome;
+  const session = isLogged ? { user: { name: usuarioNome, role: usuarioPerfil } } : null;
   
   return(
   <header className="fixed top-0 left-0 w-full h-14 px-4 bg-sky-900 border-b dark:border-gray-700 text-sky-50 z-10">

@@ -16,7 +16,7 @@ import { FaChevronDown } from "react-icons/fa"; // Ícone de seta para baixo
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import queryClient from "@/lib/reactQuery";
-import { WarningBox, tipoEnu } from "@/app/_components/warningBox";
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 
 interface Props {
   pIndice: number;

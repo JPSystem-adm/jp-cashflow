@@ -15,7 +15,7 @@ import { FaChevronDown } from "react-icons/fa";
 import { AlteraFonte, CreateFonte } from "@/app/(app)/actions/fonteActions";
 import { tipoFonte, tyFonte, tyResult } from "@/types/types";
 import queryClient from "@/lib/reactQuery";
-import { WarningBox, tipoEnu } from "@/app/_components/warningBox";
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 
 interface Props {
   pIndice: number;

@@ -12,7 +12,7 @@ import { tyResult, tySubGrupo } from "@/types/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle} from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
-import { WarningBox,tipoEnu } from "@/app/_components/warningBox";
+import { WarningBox,tipoEnu } from "@/app/(app)/_components/warningBox";
 
 interface Props {
   onAddItem: (item: tySubGrupo) => Promise<tyResult>;

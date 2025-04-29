@@ -3,14 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { CardContent, Card } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import { FileEditIcon, TrashIcon } from "@/app/_components/iconsForm"
+import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm"
 import NovoSubGrupo from "./novoSubGrupo"
 import EditaSubGrupo from "./editaSubGrupo"
 import { tyResult, tySubGrupo } from "@/types/types"
 import { Table, TableCaption, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table"
 import { useQuery } from "react-query";
 import { AlteraSubGrupo, CreateSubGrupo, DeleteSubGrupo, RetSubGrupos } from "@/app/(app)/actions/grupoActions"
-import { WarningBox, tipoEnu } from "@/app/_components/warningBox"
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox"
 import queryClient from "@/lib/reactQuery";
 
 

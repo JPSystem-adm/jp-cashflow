@@ -122,6 +122,7 @@ export default function EditaLancamentoForm ({pItem, pIndice, isEdita, setIsEdit
       
       try {      
         retorno = await AlteraLancamento(dadosLancamento);
+        console.log("retorno", retorno);
         if(retorno.status === "Sucesso"){
           setTipo(tipoEnu.Sucesso);
           setMensagem(`O lançamento foi alterado com sucesso!` );

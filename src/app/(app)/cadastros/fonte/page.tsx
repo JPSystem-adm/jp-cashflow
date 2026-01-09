@@ -1,12 +1,10 @@
+// src/app/(app)/cadastros/fonte/page.tsx
+
 import NovoFonteForm from "./_components/novoFonteForm"
 import TabelaFonte from "./_components/tabelaFontes"
-import { getServerSession } from "next-auth"
-import { auth as authOptions } from "@/lib/auth-config"
+
 
 export default async function Fontes() {
-
-  //Carregar variavei de secao
-  const session = await getServerSession(authOptions)
 
   return (
     <div className="flex flex-col mb-6 w-[90%] max-w-[1400px] min-w-[500px] items-start gap-4 px-4 pb-4 md:justify-center md:px-6 md:gap-5">
@@ -23,7 +21,7 @@ export default async function Fontes() {
           <NovoFonteForm />
         </div>
       </div>
-      <TabelaFonte userIdSession={session?.user.id}  />
+      <TabelaFonte />
     </div>
   )
 }

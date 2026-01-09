@@ -1,3 +1,5 @@
+// src/app/(app)/cadastros/fonte/_components/novoFonteForm.tsx
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -16,7 +18,6 @@ import { CreateFonte } from "@/app/(app)/actions/fonteActions";
 import { tipoFonte, tyFonte, tyResult } from "@/types/types";
 import queryClient from "@/lib/reactQuery";
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
-import {useSession } from "next-auth/react"
 
 // Definição do objeto ZOD de validação
 const schema = z.object({
@@ -36,7 +37,6 @@ const schema = z.object({
 type FormProps = z.infer<typeof schema>;
 
 export default function NovoFonteForm() {
-  const { data: session } = useSession();
 
   // Variavel de estado isOpen
   const [isOpen, setIsOpen] = useState(false);
@@ -83,7 +83,6 @@ export default function NovoFonteForm() {
       descricao: values?.descricao,
       tipo: values.tipo,
       ativo: values.ativo,
-      userId: session?.user.id, 
     }
     incluirFonte(novoFonte)
     setIsOpen(false);

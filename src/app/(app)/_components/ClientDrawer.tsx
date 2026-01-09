@@ -6,10 +6,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-  IconAgenda,
-  IconCadastros,
   IconDashBoard,
-  IconHome,
   IconLancamentos,
   IconMenu,
   IconGrupoContas,
@@ -21,9 +18,10 @@ import {
 import {
   Drawer,
   DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
   DrawerTrigger,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
 } from "@/components/ui/drawer";
 
 export default function ClientDrawer() {
@@ -35,7 +33,7 @@ export default function ClientDrawer() {
 
   return (
     <div className="flex flex-col">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      {/* <meta name="viewport" content="width=device-width, initial-scale=1.0" /> */}
       <Drawer
         scroll-smooth
         open={isDrawerOpen}
@@ -50,6 +48,12 @@ export default function ClientDrawer() {
           </div>
         </DrawerTrigger>
         <DrawerContent className="flex flex-col h-[calc(100vh-86px)]">
+          <DrawerHeader>
+            <DrawerTitle className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-4xl text-amber-400 text-center ">Menu</DrawerTitle>
+            <DrawerDescription className="text-sm text-amber-300 px-3">
+              Navegue entre as seções do aplicativo
+            </DrawerDescription>
+          </DrawerHeader> 
           <nav className="flex flex-col py-0 bg-sky-900 text-sky-50 flex-1 justify-center mb-24">
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"

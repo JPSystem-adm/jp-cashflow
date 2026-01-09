@@ -1,3 +1,5 @@
+// src/app/(app)/lancamentos/_components/tabelaLancamentos.tsx
+
 "use client";
 
 import "react-datepicker/dist/react-datepicker.css";

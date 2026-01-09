@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { tySaldo, tySomatoriasPeriodo } from '@/types/types';
+import {  tySomatoriasPeriodo } from '@/types/types';
+import { useGlobalContext } from '@/app/(app)/contextGlobal';
 
 // interface AppContextProps {
 //   dados: tySaldo[];
@@ -10,22 +11,23 @@ import { tySaldo, tySomatoriasPeriodo } from '@/types/types';
 interface AppContextProps {
   dados: tySomatoriasPeriodo[];
   setDados: (data: tySomatoriasPeriodo[]) => void;
+  userId: number;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 interface AppProviderProps {
-  userId: number|undefined;
   children: ReactNode; // Definindo explicitamente o tipo do children
 }
 
-export const SaldosProvider: React.FC<AppProviderProps> = ({children, userId}: AppProviderProps) => {
+export const SaldosProvider: React.FC<AppProviderProps> = ({children}: AppProviderProps) => {
 
   // const [dados, setDados] = useState<tySaldo[]>([]);
   const [dados, setDados] = useState<tySomatoriasPeriodo[]>([]);
-
+  const { usuarioId } = useGlobalContext();
+  
   return (
-    <AppContext.Provider value={{ dados, setDados }}>
+    <AppContext.Provider value={{ dados, setDados, userId: usuarioId }}>
       {children}
     </AppContext.Provider>
   );

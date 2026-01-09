@@ -43,7 +43,10 @@ export default function LoginForm({ defaultLogin = "" }: Props)  {
 
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    const baseURL_API = process.env.NEXT_PUBLIC_BASEURL_API || "http://localhost:3001";
+    const baseURL_API = process.env.NEXT_PUBLIC_BASEURL_API;
+    if (!baseURL_API) {
+      throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env.local");
+    }
 
     try {
       const res = await fetch(`${baseURL_API}/api/public/global/autenticacao/login`, {
@@ -93,7 +96,11 @@ export default function LoginForm({ defaultLogin = "" }: Props)  {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_BASEURL_API || "http://localhost:3001"; // Ajuste a URL
+      //const apiUrl = process.env.NEXT_PUBLIC_BASEURL_API || "http://localhost:3001"; // Ajuste a URL
+      const apiUrl = process.env.NEXT_PUBLIC_BASEURL_API;
+      if (!apiUrl) {
+        throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env.local");
+      }
       
       const res = await fetch(`${apiUrl}/api/public/global/auth/redefinirSenha`, {
         method: "POST",

@@ -1,12 +1,9 @@
-// pages/about.tsx
+// src/app/(app)/about/page.tsx
 
-//import React from 'react';
-//import Image from 'next/image';
 import { getFusoLocal } from '@/lib/formatacoes';
 import { FaReact, FaNodeJs, FaCss3Alt, FaDatabase } from 'react-icons/fa';
 import { SiTypescript, SiTailwindcss, SiPrisma, SiMysql } from 'react-icons/si';
-import packageJson from '../../../package.json';
-import { newDate } from 'react-datepicker/dist/date_utils';
+import packageJson from '../../../../package.json';
 
 
 export default async function About() {

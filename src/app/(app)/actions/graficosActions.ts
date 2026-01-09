@@ -116,7 +116,7 @@ export async function ListaSubContasPorContas(periodoId: number | undefined, gru
 
 // Retorna uma lista de fontes com as somatorias
 // no periodo
-export async function RetSomatoriasPeriodo(periodoId: number | undefined) {
+export async function RetSomatoriasPeriodo(periodoId: number | undefined, modo: string) {
   //const session = await getServerSession(authOptions);
   //const token = session?.user?.token; // Pega o token armazenado
   const token = getTokenFromCookie();
@@ -125,7 +125,7 @@ export async function RetSomatoriasPeriodo(periodoId: number | undefined) {
 
   try {
     // ✅ Executa o Endpoint da API
-    const response = await fetch(`${urlAPI}somatoriaPeriodo?periodoId=${periodoId}`, {
+    const response = await fetch(`${urlAPI}somatoriaPeriodo?periodoId=${periodoId}&modo=${modo}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

@@ -1,20 +1,17 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { format, startOfMonth, endOfMonth, parseISO, addHours } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale"; // Importa a localização em português
-import { FaCalendarAlt } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { DialogTitle } from "@/components/ui/dialog";
 import DatePicker from "react-datepicker";
-//import "react-datepicker/dist/react-datepicker.css";
 import ComboGrupos from "./querys/selectGrupos";
 import ComboSubGrupos from "./querys/selectSubGrupos";
 import ComboFontes from "./querys/selectFontes";
@@ -120,9 +117,10 @@ export default function NovoLancamentosForm() {
   //Função para incluir o lançamento
   async function incluirLancamento(dadosLancamento: tyLancamento){
     let retorno:tyResult ;
+    console.log("Dados do Lançamento: ", dadosLancamento);
     try {      
       retorno = await CriarLancamento(dadosLancamento);
-      
+      console.log("Retorno da inclusão: ", retorno);
       if(retorno.status === "Sucesso"){
         setTipo(tipoEnu.Sucesso);
         setMensagem(`A fonte foi incluida com sucesso!` );
@@ -177,7 +175,12 @@ export default function NovoLancamentosForm() {
             </Button>
           </SheetTrigger>
           <SheetContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 min-h-[500px] max-h-[500px] min-w-[800px] max-w-[800px] overflow-x-auto rounded-2xl bg-white p-8 text-sky-800 shadow">
-            <DialogTitle className="text-sky-900">Novo Lançamento</DialogTitle>
+            <SheetHeader>
+              <SheetTitle className="text-sky-900">Novo Lançamento</SheetTitle>
+                <SheetDescription className="text-muted-foreground text-sm">
+                  Preencha os dados do lançamento financeiro
+                </SheetDescription>
+            </SheetHeader>
             {/* CONTA E SUBCONTA */}
             <div className="flex gap-2 mb-2" >
               <div className="flex-1">

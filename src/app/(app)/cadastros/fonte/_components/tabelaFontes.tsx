@@ -1,30 +1,20 @@
+// src/app/(app)/cadastros/fonte/_components/tabelaFontes.tsx
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { CardContent, Card } from "@/components/ui/card";
 import { useQuery } from "react-query";
 import queryClient from "@/lib/reactQuery";
-import {
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableCell,
-  TableBody,
-  Table,
-} from "@/components/ui/table";
+import { TableHead, TableRow, TableHeader, TableCell, TableBody,  Table, } from "@/components/ui/table";
 import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import { DeleteFontes, ListaFontes } from "@/app/(app)/actions/fonteActions";
-import { useSession } from "next-auth/react";
 import ConfirmationBox from "@/app/(app)/_components/confirmationBox";
 import { useState } from "react";
 import EditaFonteForm from "./editaFonte";
 import { tyFonte } from "@/types/types";
 
-interface Props {
-  userIdSession: number | undefined;
-}
-
-export default function TabelaFontes({ userIdSession }: Props) {
+export default function TabelaFontes() {
   //Variavel para a caixa de confirmação (ConfirmationBox)
   const [showConfirmation, setShowConfirmation] = useState(false);
   //Variaveis para setar o indice selecionado
@@ -37,7 +27,7 @@ export default function TabelaFontes({ userIdSession }: Props) {
   //Criação e execução do HOOK useQuery
   //Carrega as fontes
   const { data, isLoading } = useQuery("fontes", async () => {
-    const response = await ListaFontes(userIdSession);
+    const response = await ListaFontes();
     // console.log("DATA", data)
     return response;
   });

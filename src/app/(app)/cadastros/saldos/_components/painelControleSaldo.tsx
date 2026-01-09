@@ -19,16 +19,20 @@ export default function PainelControleSaldo() {
   const { data, isLoading, refetch } = useQuery(["saldos", periodoId], async () => {
       // const response: tySaldo[] = await RetSaldos(periodoId);
       // const response: tySomatoriasPeriodo[] = await RetSaldos(periodoId);
-      const response: tySomatoriasPeriodo[] = await RetSomatoriasPeriodo(periodoId);
+      const response: tySomatoriasPeriodo[] = await RetSomatoriasPeriodo(periodoId, "normal");
       setDados(response);
       return response;
     }
   );
 
   const incluirSaldos = async () =>{
+    console.log("Click em Incluir Saldos", usuarioId, periodo);
     let retorno:tyResult ;
     try {
+      console.log("Entrou no try:", usuarioId, periodo);
       retorno = await CriarSaldos(periodo, usuarioId);
+      console.log("RETORNO", retorno);
+
        //Limpar o cache da consulta para atualizar os dados
        queryClient.refetchQueries(["saldos", periodoId]);   
     } catch (error) {

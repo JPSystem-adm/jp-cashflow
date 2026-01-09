@@ -1,12 +1,12 @@
+// src/app/(app)/cadastros/grupoDeContas/page.tsx
 import NovoGrupoForm from "./_components/novoGrupoForm"
 import TabelaGrupos from "./_components/tabelaGrupos"
-import { getServerSession } from "next-auth"
-import { auth as authOptions } from "@/lib/auth-config"
+
 
 export default async function GrupoDeContas() {
   
   //Carregar variavei de secao
-  const session = await getServerSession(authOptions)
+  //const session = await getServerSession(authOptions)
 
   return (
     
@@ -23,9 +23,11 @@ export default async function GrupoDeContas() {
         {/* <div className="flex w-full justify-end"> */}
         <div className="justify-items-center flex w-full justify-end content-center mt-6">
           <NovoGrupoForm />
-        </div>
-      <TabelaGrupos userIdSession={session?.user.id} />
+        </div>        
       </div>
+      <div className="w-full overflow-x-auto">
+        <TabelaGrupos />
+      </div>     
     </div>
   )
 }

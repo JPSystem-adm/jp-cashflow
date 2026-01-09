@@ -1,3 +1,5 @@
+// src/app/(app)/lancamentos/page.tsx
+
 import TabelaLancamentos from "./_components/tabelaLancamentos";
 import { LancamentoProvider } from "./_components/contextLancamentoProvider";
 import PainelFiltros from "./_components/painelFiltros";

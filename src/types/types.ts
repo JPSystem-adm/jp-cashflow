@@ -21,6 +21,14 @@ export type tyGrupo = {
   userId?:    number,
 }
 
+export type tyGrupoSubGrupo = {
+  nome: string
+  descricao?: string
+  tipo?: "C" | "D" | "M"
+  ativo?: boolean
+  subGrupos?: { nome: string; descricao?: string }[]
+}
+
 export type tyFonte = {
   id?:        number;
   nome:       string;
@@ -69,7 +77,7 @@ export type tyErro = {
 export type tyResult = {
   status?:    string,
   menssagem?: string,
-  dados: {},
+  dados?: {},
 }
 export type tyOrcamento = {
   orcamentoId?: number,

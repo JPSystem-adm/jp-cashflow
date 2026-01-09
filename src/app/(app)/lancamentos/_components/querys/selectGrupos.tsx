@@ -45,7 +45,9 @@ export default function ComboGrupos ({pai}: Props) {
   }
 
   const SelOperacao = async (grupoID:number) => {
+    console.log("GRUPOID SELECIONADO: ", grupoID)
     const oper = await RetOperacao(grupoID);
+    console.log("RETORNO DA OPERACAO : ", oper)
     setOperacao(oper ?? "");
   }
 

@@ -1,3 +1,4 @@
+// src/app/(app)/cadastros/grupoDeContas/_components/tabelaSubGrupos.tsx
 "use client"
 // COMPONENTE PAI
 import { Button } from "@/components/ui/button"

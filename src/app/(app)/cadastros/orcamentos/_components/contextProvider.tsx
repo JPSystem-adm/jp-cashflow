@@ -11,11 +11,11 @@ interface AppContextProps {
 const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 interface AppProviderProps {
-  userId: number|undefined;
+  //userId: number|undefined;
   children: ReactNode; // Definindo explicitamente o tipo do children
 }
 
-export const AppProvider: React.FC<AppProviderProps> = ({children, userId}: AppProviderProps) => {
+export const AppProvider: React.FC<AppProviderProps> = ({children}: AppProviderProps) => {
 
   const [dados, setDados] = useState<tyOrcamento[]>([]);
 

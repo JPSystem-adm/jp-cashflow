@@ -31,7 +31,7 @@ export default function CardConta({ icone, conta }: CardContaProps) {
 
   useEffect(() => {
     async function carregaMovimentos(){
-      const response = await RetSomatoriasPeriodo(periodoId);
+      const response = await RetSomatoriasPeriodo(periodoId, "GERAL");
       setDadosMovimento(response);
     }
 

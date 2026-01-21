@@ -53,18 +53,18 @@ export default function FormSaldo({ indice, isEdita, setIsEdita }: Props) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      valor: DoubleToRealBR(item?.saldoInicial ?? 0),
+      valor: DoubleToRealBR(item?.valorInicial ?? 0),
     },
     values: {
       // mantém o input sincronizado quando muda o item
-      valor: DoubleToRealBR(item?.saldoInicial ?? 0),
+      valor: DoubleToRealBR(item?.valorInicial ?? 0),
     },
   });
 
   const handleClose = () => {
     setIsEdita(false);
     form.reset({
-      valor: DoubleToRealBR(item?.saldoInicial ?? 0),
+      valor: DoubleToRealBR(item?.valorInicial ?? 0),
     });
   };
 
@@ -94,7 +94,7 @@ export default function FormSaldo({ indice, isEdita, setIsEdita }: Props) {
           <DialogTitle className="text-sky-900 mb-3">Editar Saldo</DialogTitle>
 
           <Label className="text-sky-600 font-semibold">
-            Alterar o valor do saldo da fonte {item?.fonte ?? ""}
+            Alterar o valor do saldo da fonte {item?.Fonte ?? ""}
           </Label>
 
           <Form {...form}>

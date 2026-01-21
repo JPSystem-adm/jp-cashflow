@@ -52,9 +52,11 @@ export function ResetaSenha() {
       confirmaSenha: data.confirmaSenha,
     }
 
-    const ret = await AlteraSenha(dados)
+    const ret = await AlteraSenha(String(dados.id), dados.senha);
 
-    if (ret.status === "Sucesso") {
+    
+    const SUCESSO = 1;
+    if (ret.status === SUCESSO) {
       router.replace("/app/")
     } else {
       return;

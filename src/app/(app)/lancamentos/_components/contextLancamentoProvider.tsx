@@ -1,69 +1,102 @@
 // src/app/(app)/lancamentos/_components/contextLancamentoProvider.tsx
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { tyLancamento, tySelects } from '@/types/types';
+import type { ReactNode } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
+import type { tyLancamento } from "@/types/types";
+import type { OperacaoLancamento } from "@/app/(app)/actions/lancamentoAPI";
 
-interface AppContextProps {
+type LancamentoContextValue = {
   dados: tyLancamento[];
-  setDados: (data: tyLancamento[]) => void;
+  setDados: React.Dispatch<React.SetStateAction<tyLancamento[]>>;
+
+  // filtros
   grupoId: number;
-  setGrupoId: (data: number) => void;
+  setGrupoId: React.Dispatch<React.SetStateAction<number>>;
   subGrupoId: number;
-  setSubGrupoId: (data: number) => void;
+  setSubGrupoId: React.Dispatch<React.SetStateAction<number>>;
   fonteId: number;
-  setFonteId: (data: number) => void;
+  setFonteId: React.Dispatch<React.SetStateAction<number>>;
+
+  // form
   formGrupoId: number;
-  setFormGrupoId: (data: number) => void;
+  setFormGrupoId: React.Dispatch<React.SetStateAction<number>>;
   formSubGrupoId: number;
-  setFormSubGrupoId: (data: number) => void;
+  setFormSubGrupoId: React.Dispatch<React.SetStateAction<number>>;
   formFonteIdO: number;
-  setFormFonteIdO: (data: number) => void;
-  formFonteIdD: number|null;
-  setFormFonteIdD: (data: number|null) => void;
-  operacao: string;
-  setOperacao: (data: string) => void;
-}
+  setFormFonteIdO: React.Dispatch<React.SetStateAction<number>>;
+  formFonteIdD: number | null;
+  setFormFonteIdD: React.Dispatch<React.SetStateAction<number | null>>;
 
-const LancamentoContext = createContext<AppContextProps | undefined>(undefined);
+  operacao: OperacaoLancamento;
+  setOperacao: React.Dispatch<React.SetStateAction<OperacaoLancamento>>;
+};
 
-interface AppProviderProps {
-  children: ReactNode; // Definindo explicitamente o tipo do children
-}
+const LancamentoContext = createContext<LancamentoContextValue | null>(null);
 
-export const LancamentoProvider: React.FC<AppProviderProps> = ({children}: AppProviderProps) => {
-
+export function LancamentoProvider({ children }: { children: ReactNode }) {
   const [dados, setDados] = useState<tyLancamento[]>([]);
-  const [grupoId, setGrupoId] = useState<number>(0)
-  const [subGrupoId, setSubGrupoId] = useState<number>(0)
-  const [fonteId, setFonteId] = useState<number>(0)
-  const [formGrupoId, setFormGrupoId] = useState<number>(0)
-  const [formSubGrupoId, setFormSubGrupoId] = useState<number>(0)
-  const [formFonteIdO, setFormFonteIdO] = useState<number>(0)
-  const [formFonteIdD, setFormFonteIdD] = useState<number|null>(null)
-  const [operacao, setOperacao] = useState<string>("")
 
-  return (
-    <LancamentoContext.Provider value={{ 
-      dados, setDados, 
-      grupoId, setGrupoId,
-      subGrupoId, setSubGrupoId,
-      fonteId, setFonteId,
-      formGrupoId, setFormGrupoId,
-      formSubGrupoId, setFormSubGrupoId,
-      formFonteIdO, setFormFonteIdO, 
-      formFonteIdD, setFormFonteIdD, 
-      operacao, setOperacao,
-    }}>
-      {children}
-    </LancamentoContext.Provider>
+  // filtros
+  const [grupoId, setGrupoId] = useState<number>(0);
+  const [subGrupoId, setSubGrupoId] = useState<number>(0);
+  const [fonteId, setFonteId] = useState<number>(0);
+
+  // form
+  const [formGrupoId, setFormGrupoId] = useState<number>(0);
+  const [formSubGrupoId, setFormSubGrupoId] = useState<number>(0);
+  const [formFonteIdO, setFormFonteIdO] = useState<number>(0);
+  const [formFonteIdD, setFormFonteIdD] = useState<number | null>(null);
+
+  // operação normalizada no frontend:
+  // - "T" => transferência (2 fontes)
+  // - "M" => movimentação (D/C da API)
+  const [operacao, setOperacao] = useState<OperacaoLancamento>("M");
+
+  const value = useMemo<LancamentoContextValue>(
+    () => ({
+      dados,
+      setDados,
+
+      grupoId,
+      setGrupoId,
+      subGrupoId,
+      setSubGrupoId,
+      fonteId,
+      setFonteId,
+
+      formGrupoId,
+      setFormGrupoId,
+      formSubGrupoId,
+      setFormSubGrupoId,
+      formFonteIdO,
+      setFormFonteIdO,
+      formFonteIdD,
+      setFormFonteIdD,
+
+      operacao,
+      setOperacao,
+    }),
+    [
+      dados,
+      grupoId,
+      subGrupoId,
+      fonteId,
+      formGrupoId,
+      formSubGrupoId,
+      formFonteIdO,
+      formFonteIdD,
+      operacao,
+    ]
   );
-};
 
-export const useLancamentoContext = () => {
-  const context = useContext(LancamentoContext);
-  if (!context) {
-    throw new Error('useLancamentoContext deve ser usado dentro de um AppProvider');
+  return <LancamentoContext.Provider value={value}>{children}</LancamentoContext.Provider>;
+}
+
+export function useLancamentoContext(): LancamentoContextValue {
+  const ctx = useContext(LancamentoContext);
+  if (!ctx) {
+    throw new Error("useLancamentoContext deve ser usado dentro de LancamentoProvider");
   }
-  return context;
-};
+  return ctx;
+}

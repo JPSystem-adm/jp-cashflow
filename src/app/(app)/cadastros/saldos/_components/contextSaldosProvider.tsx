@@ -1,42 +1,32 @@
+// src/app/(app)/cadastros/saldos/_components/contextSaldosProvider.tsx
+
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from 'react';
-import {  tySomatoriasPeriodo } from '@/types/types';
-import { useGlobalContext } from '@/app/(app)/contextGlobal';
+import type { ReactNode } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 
-// interface AppContextProps {
-//   dados: tySaldo[];
-//   setDados: (data: tySaldo[]) => void;
-// }
-interface AppContextProps {
-  dados: tySomatoriasPeriodo[];
-  setDados: (data: tySomatoriasPeriodo[]) => void;
-  userId: number;
-}
+import type { tySomatoriasPeriodo } from "@/app/(app)/actions/saldoAPI";
 
-const AppContext = createContext<AppContextProps | undefined>(undefined);
-
-interface AppProviderProps {
-  children: ReactNode; // Definindo explicitamente o tipo do children
-}
-
-export const SaldosProvider: React.FC<AppProviderProps> = ({children}: AppProviderProps) => {
-
-  // const [dados, setDados] = useState<tySaldo[]>([]);
-  const [dados, setDados] = useState<tySomatoriasPeriodo[]>([]);
-  const { usuarioId } = useGlobalContext();
-  
-  return (
-    <AppContext.Provider value={{ dados, setDados, userId: usuarioId }}>
-      {children}
-    </AppContext.Provider>
-  );
+export type SaldoRow = tySomatoriasPeriodo
+type SaldosContextValue = {
+  rows: SaldoRow[];
+  setRows: (rows: SaldoRow[]) => void;
 };
 
-export const useSaldoContext = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext deve ser usado dentro de um AppProvider');
-  }
-  return context;
-};
+const SaldosContext = createContext<SaldosContextValue | undefined>(undefined);
+
+type Props = { children: ReactNode };
+
+export function SaldosProvider({ children }: Props) {
+  const [rows, setRows] = useState<SaldoRow[]>([]);
+
+  const value = useMemo<SaldosContextValue>(() => ({ rows, setRows }), [rows]);
+
+  return <SaldosContext.Provider value={value}>{children}</SaldosContext.Provider>;
+}
+
+export function useSaldoContext(): SaldosContextValue {
+  const ctx = useContext(SaldosContext);
+  if (!ctx) throw new Error("useSaldoContext deve ser usado dentro de SaldosProvider");
+  return ctx;
+}

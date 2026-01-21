@@ -1,4 +1,4 @@
-// src/app/layout.tsx
+// src/app/(app)/layout.tsx
 
 import "./globals.css";
 

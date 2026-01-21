@@ -1,78 +1,114 @@
+// src/app/(app)/cadastros/saldos/_components/painelControleSaldo.tsx
+
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "react-query";
-import queryClient from "@/lib/reactQuery";
-import { AtualizaSaldo, AtualizaSaldos, CriarSaldos, fontesAtivas, RetSaldos } from "@/app/(app)/actions/saldosActions";
-import { tySaldo, tyResult, tySomatoriasPeriodo } from "@/types/types";
-import { useSaldoContext } from "./contextSaldosProvider";
+
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
-import { RetSomatoriasPeriodo } from "@/app/(app)/actions/graficosActions";
+import { useQuery, useQueryClient } from "react-query";
+
+import { ensurePeriodo } from "@/app/(app)/actions/periodoAPI";
+import { listarSaldos, gerarSaldos, atualizarSaldos } from "@/app/(app)/actions/saldoAPI";
+import { useSaldoContext } from "./contextSaldosProvider";
 
 export default function PainelControleSaldo() {
-  const {dados, setDados} = useSaldoContext();
-  const { usuarioId, periodoId, periodo } = useGlobalContext();
+  const qc = useQueryClient();
+  const { periodo, periodoId, setPeriodoId } = useGlobalContext();
+  const { setRows } = useSaldoContext();
 
-  const { data, isLoading, refetch } = useQuery(["saldos", periodoId], async () => {
-      // const response: tySaldo[] = await RetSaldos(periodoId);
-      // const response: tySomatoriasPeriodo[] = await RetSaldos(periodoId);
-      const response: tySomatoriasPeriodo[] = await RetSomatoriasPeriodo(periodoId, "normal");
-      setDados(response);
-      return response;
+  // evita chamar ensurePeriodo duas vezes (StrictMode)
+  const ensuredRef = useRef(false);
+
+  // 1) Garantir periodoId (se vier 0)
+  useEffect(() => {
+    const run = async () => {
+      if (periodoId > 0) return;
+      if (ensuredRef.current) return;
+      ensuredRef.current = true;
+
+      try {
+        const id = await ensurePeriodo(periodo);
+        if (id > 0) setPeriodoId(id);
+      } catch (e) {
+        console.error("Falha ao garantir período no painel de saldos:", e);
+      }
+    };
+
+    void run();
+  }, [periodo, periodoId, setPeriodoId]);
+
+  const periodoValido = periodoId > 0;
+
+  // 2) Buscar saldos do período (somente quando periodoId estiver ok)
+  const { data: rows = [], isLoading } = useQuery(
+    ["saldos", periodoId],
+    () => listarSaldos(periodoId),
+    {
+      enabled: periodoValido,
+      refetchOnWindowFocus: false,
+      retry: 0,
+      initialData: [],
     }
   );
 
-  const incluirSaldos = async () =>{
-    console.log("Click em Incluir Saldos", usuarioId, periodo);
-    let retorno:tyResult ;
-    try {
-      console.log("Entrou no try:", usuarioId, periodo);
-      retorno = await CriarSaldos(periodo, usuarioId);
-      console.log("RETORNO", retorno);
+  // ✅ 2.1) Sincroniza com o contexto (isso destrava a tabela)
+  useEffect(() => {
+    setRows(rows);
+  }, [rows, setRows]);
 
-       //Limpar o cache da consulta para atualizar os dados
-       queryClient.refetchQueries(["saldos", periodoId]);   
-    } catch (error) {
-      
-    }
-  }
+  const temSaldos = useMemo(() => rows.length > 0, [rows.length]);
 
-  const atualizarSaldos = async () =>{
-    let retorno:tyResult ;
+  // 3) regra dos botões
+  const podeCriar = periodoValido && !isLoading && !temSaldos;
+  const podeAtualizar = periodoValido && !isLoading && temSaldos;
+
+  const onCriar = async () => {
     try {
-      retorno = await AtualizaSaldos(periodoId, usuarioId);
-       //Limpar o cache da consulta para atualizar os dados
-       queryClient.refetchQueries(["saldos", periodoId]);   
-    } catch (error) {
-      
+      await gerarSaldos(periodo);
+      await qc.invalidateQueries(["saldos", periodoId]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao criar saldos";
+      alert(msg);
     }
-  }
+  };
+
+  const onAtualizar = async () => {
+    try {
+      await atualizarSaldos(periodoId);
+      await qc.invalidateQueries(["saldos", periodoId]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao atualizar saldos";
+      alert(msg);
+    }
+  };
 
   return (
     <div className="pb-8 flex flex-col w-full items-center">
-      <Card className="border-sky-900 border-2 w-[70%]">
-        <CardContent className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-3">
-          <div className="flex flex-1 gap-4 justify-between">
-            <div className="flex w-[50%] max-w-xs">          
+      <Card className="border-sky-900 border-2 w-full sm:w-[92%] md:w-[80%] lg:w-[70%]">
+        <CardContent className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+            <div className="flex">
               <Label className="text-lg font-bold">{`Periodo ${periodo}`}</Label>
             </div>
-            <div className="flex flex-row w-[50%] max-w-xs justify-between">
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               <Button
                 variant="outline"
-                disabled={!(dados?.length === 0 && periodoId > 0)}
+                disabled={!podeCriar}
                 className="border-2 border-sky-900 text-sm text-sky-900 hover:bg-sky-200"
-                onClick={incluirSaldos}
+                onClick={onCriar}
               >
                 Criar Saldos
               </Button>
+
               <Button
                 variant="outline"
-                disabled={(dados?.length === 0 && periodoId > 0)}
+                disabled={!podeAtualizar}
                 className="border-2 border-sky-900 text-sm text-sky-900 hover:bg-sky-200"
-                onClick={atualizarSaldos}
+                onClick={onAtualizar}
               >
                 Atualizar Saldos
               </Button>

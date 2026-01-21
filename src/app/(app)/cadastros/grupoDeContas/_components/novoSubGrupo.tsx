@@ -1,55 +1,62 @@
+// src/app/(app)/cadastros/grupoDeContas/_components/novoSubGrupo.tsx
+
 "use client";
 
-// COMPONENTE FILHO
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { tyResult, tySubGrupo } from "@/types/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle} from "@/components/ui/sheet";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
-import { WarningBox,tipoEnu } from "@/app/(app)/_components/warningBox";
+import { Button } from "@/components/ui/button";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
+import type { tyResult, tySubGrupo } from "@/types/types";
 
 interface Props {
   onAddItem: (item: tySubGrupo) => Promise<tyResult>;
 }
 
 const schema = z.object({
-  nome: z.string().min(3, "O nome da subconta deve ter pelo menos 3 caracteres."),
-  descricao: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres."),
-  ativo: z.boolean(),
+  nome: z
+    .string()
+    .min(3, "O nome da subconta deve ter pelo menos 3 caracteres.")
+    .transform((v) => v.trim()),
+  descricao: z
+    .string()
+    .min(2, "Campo obrigatório!")
+    .transform((v) => v.trim()),
+  ativo: z.boolean().default(true),
 });
 
 type FormProps = z.infer<typeof schema>;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 export default function NovoSubGrupo({ onAddItem }: Props) {
-  // Variável de estado isOpen
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
-    //Variaveis para a caixa de avisos (WarningBox)
-    const [showAlerta, setShowAlerta] = useState(false);
-    const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
-    const [mensagem, setMensagem] = useState("Menssagem default");
-  
-    //Função para fechar o formulário de edição dos dados
-    const handleFechar=()=>{
-      //setSubGruposP([]);
-      //setIsEdita(false);
-      setShowAlerta(false);
-    };
+  const [showAlerta, setShowAlerta] = useState<boolean>(false);
+  const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
+  const [mensagem, setMensagem] = useState<string>("");
 
-  // Função para fechar a SHEET
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
-  // Definição do formulário
   const form = useForm<FormProps>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -59,162 +66,160 @@ export default function NovoSubGrupo({ onAddItem }: Props) {
     },
   });
 
-  // Função para abrir a Sheet
-  const handleOpen = () => {
-    form.reset();
-    setIsOpen(true);
-  };
+  function fecharAviso(): void {
+    setShowAlerta(false);
+  }
 
-  // Definição do submit handler.
-  async function onSubmit(values: FormProps) {
+  function handleOpen(): void {
+    form.reset({ nome: "", descricao: "", ativo: true });
+    setIsOpen(true);
+  }
+
+  function handleClose(): void {
+    setIsOpen(false);
+  }
+
+  async function onSubmit(values: FormProps): Promise<void> {
     const newItem: tySubGrupo = {
       nome: values.nome.toUpperCase(),
       descricao: values.descricao,
       ativo: values.ativo,
     };
+
     const retorno = await onAddItem(newItem);
 
     if (retorno.status === "Sucesso") {
       setTipo(tipoEnu.Sucesso);
-      setMensagem(retorno.menssagem || "Incluido com sucesso!");
+      setMensagem(retorno.menssagem ?? "Incluído com sucesso!");
       setShowAlerta(true);
       setIsOpen(false);
-    } else {
-      setTipo(tipoEnu.Erro);
-      setMensagem(retorno.menssagem || "Esse subtipo já existe!");
-      setShowAlerta(true);
-      //setIsOpen(false);
+      return;
     }
+
+    setTipo(tipoEnu.Erro);
+    setMensagem(retorno.menssagem ?? "Não foi possível incluir o subgrupo.");
+    setShowAlerta(true);
   }
 
   return (
     <>
-    { showAlerta && (
-        <WarningBox
-          tipo={tipo}
-          mensagem={mensagem}
-          onCancel={handleFechar}
-        />
-      )
-    }  
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        variant="outline"
-        className="hover:bg-sky-100 text-sky-900 border-2"
-        onClick={handleOpen}
-      >
-        + SubGrupo
-      </Button>
-      <SheetContent
-        side="top"
-        className={`
-          bg-gray-100/90 
-          left-1/2 top-1/2 
-          -translate-x-1/2 
-          -translate-y-1/2 
-          h-fit
-          max-w-[400px] 
-          max-h-[600px] 
-          overflow-auto 
-          rounded-2xl 
-          bg-white p-8 
-          shadow-lg 
-          flex flex-col
-          `}
-      >
-        <SheetHeader>
-          <SheetTitle className="text-2xl text-left text-sky-900">Novo SubGrupo</SheetTitle>
-          <SheetClose asChild>
-            <button
-              onClick={handleClose}
-              className="absolute right-5 top-1"
-            ></button>
-          </SheetClose>
-        </SheetHeader>
-        {/* Inclusão do formulário */}
-        <div className="flex flex-col w-full items-center space-y-4">
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-8 w-full max-w-[400px]"
-            >
-              <FormField
-                control={form.control}
-                name="nome"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-lg font-semibold text-sky-900">
-                      Nome
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Nome"
-                        className="placeholder:text-sky-800 border-2 border-sky-900"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="descricao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-lg font-semibold text-sky-900">
-                      Descrição
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Descrição"
-                        className="placeholder:text-sky-800 border-2 border-sky-900"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex items-center">
+      {showAlerta && (
+        <WarningBox tipo={tipo} mensagem={mensagem} onCancel={fecharAviso} />
+      )}
+
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <Button
+          variant="outline"
+          className="hover:bg-slate-100 text-sky-900 border-2 border-sky-800 hover:text-sky-900 text-base sm:text-xl"
+          onClick={handleOpen}
+        >
+          + SubGrupo
+        </Button>
+
+        <SheetContent
+          aria-describedby="descricao-subgrupo"
+          className={[
+            "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+            "w-[95vw] sm:w-full sm:max-w-xl lg:max-w-2xl",
+            "h-[90vh] max-h-[90vh]",
+            "overflow-auto rounded-2xl bg-white p-4 sm:p-6 shadow-lg",
+          ].join(" ")}
+        >
+          <SheetHeader>
+            <SheetTitle className="text-xl sm:text-2xl text-sky-900">
+              Novo SubGrupo
+            </SheetTitle>
+            <p id="descricao-subgrupo" className="text-muted-foreground text-sm">
+              Informe os dados do subgrupo
+            </p>
+          </SheetHeader>
+
+          <div className="mt-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                  <div className="sm:col-span-7">
+                    <FormField
+                      control={form.control}
+                      name="nome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sky-900">Nome</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex: ALUGUEL"
+                              className="placeholder:text-sky-800 border-2 border-sky-900"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-5">
+                    <FormField
+                      control={form.control}
+                      name="ativo"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-1 sm:mt-6">
+                          <FormLabel className="text-sky-900">Ativo</FormLabel>
+                          <FormControl>
+                            <Checkbox
+                              className="border-2 border-sky-900"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="ativo"
+                  name="descricao"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col items-center space-y-2 text-sky-900">
-                      <FormLabel>Ativo</FormLabel>
+                    <FormItem>
+                      <FormLabel className="text-sky-900">Descrição</FormLabel>
                       <FormControl>
-                        {/* {...field} checked={field.value}  */}
-                        <Checkbox className="border-2 border-sky-900"/>
+                        <Textarea
+                          placeholder="Descreva a finalidade desse subgrupo..."
+                          className="placeholder:text-sky-800 border-2 border-sky-900 min-h-[120px]"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="text-sm font-semibold flex justify-end mt-7 text-sky-900">
-                <SheetFooter>
+
+                <SheetFooter className="text-sm mb-2 font-semibold flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end mt-5">
                   <Button
+                    type="button"
                     variant="outline"
-                    type="submit"
-                    className="text-lg px-2 py-1 hover:bg-slate-200 border-sky-800 border-2"
-                  >
-                    Incluir
-                  </Button>
-                  <Button
-                    variant="outline"
+                    className="text-base sm:text-lg px-3 py-2 hover:bg-slate-200 border-sky-800 border-2"
                     onClick={handleClose}
-                    className="text-lg px-2 py-1 hover:bg-slate-200 border-sky-800 border-2"
                   >
                     Cancelar
                   </Button>
+
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="text-base sm:text-lg px-3 py-2 hover:bg-slate-200 border-sky-800 border-2"
+                  >
+                    Incluir
+                  </Button>
                 </SheetFooter>
-              </div>
-            </form>
-          </Form>
-        </div>
-      </SheetContent>
-    </Sheet>
+              </form>
+            </Form>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

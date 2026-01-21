@@ -1,6 +1,7 @@
 // src/app/(app)/dashboard/_components/DashboardClient.tsx
 "use client";
 
+import PageContainer from "@/app/(app)/_components/PageContainer";
 import CardConta from "./cardConta";
 import { DashboardProvider } from "./contextDashboardProvider";
 import GraficoBarDespesas from "./graficoBarDespesas";
@@ -11,57 +12,63 @@ import SelectContas from "./selectContas";
 export default function DashboardClient() {
   return (
     <DashboardProvider>
-      <div className="flex flex-row h-[60%] w-[95%] max-w-[1600px] min-w-[600px] min-h-[500px] items-center px-4 py-0 pb-16">
-        <div className="flex flex-col justify-between h-full w-full m-4 py-0">
+      <PageContainer>
+        <div className="min-h-[calc(100dvh-2rem)] pb-10">
           {/* Título */}
-          <div className="flex flex-col w-full mb-6 justify-center">
-            <h1 className="text-xl font-bold tracking-tighter sm:text-2xl md:text-2xl text-center text-sky-900 py-0">
+          <header className="flex flex-col items-center justify-center gap-2 py-2 sm:py-4">
+            <h1 className="text-xl font-bold tracking-tighter sm:text-2xl text-center text-sky-900">
               Dashboard
             </h1>
-            <p className="text-sm md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-sky-800 text-center">
+            <p className="text-sm sm:text-base lg:text-lg text-sky-800 text-center">
               Painel de Estatísticas do Período.
             </p>
-          </div>
+          </header>
 
           {/* Conteúdo */}
-          <div className="flex flex-row w-full align-middle">
-            {/* Lado Esquerdo */}
-            <div className="flex flex-col justify-center align-middle w-full mr-6">
-              <div className="flex flex-col justify-center mb-10 border-2 border-gray-200 rounded-md shadow-lg p-8">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px] lg:gap-6">
+            {/* COLUNA ESQUERDA (gráficos) */}
+            <section className="flex flex-col gap-4">
+              <div className="rounded-md border-2 border-gray-200 shadow-lg p-4 sm:p-6">
                 <GraficoBarDespesas />
               </div>
-              <div className="flex flex-row justify-between mb-14">
-                <div className="flex flex-col justify-center w-[45%] min-w-80 border-2 border-gray-200 rounded-md shadow-lg p-8">
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="rounded-md border-2 border-gray-200 shadow-lg p-4 sm:p-6">
                   <GraficoPizzaEntradas />
                 </div>
-                <div className="flex flex-col justify-center w-[45%] min-w-80 border-2 border-gray-200 rounded-md shadow-lg p-2">
+
+                <div className="rounded-md border-2 border-gray-200 shadow-lg p-3 sm:p-4">
                   <SelectContas />
-                  <GraficoBarSubContas />
+                  <div className="mt-2">
+                    <GraficoBarSubContas />
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Lado Direito */}
-            <div className="flex flex-col flex-wrap w-[500px] mb-10 h-full p-2 rounded-md shadow-lg items-center justify-start">
-              <div className="flex w-full mb-10 rounded-md shadow-lg p-2">
-                <CardConta icone="despesas.png" conta="Despesas" />
+            {/* COLUNA DIREITA (cards) */}
+            <aside className="rounded-md shadow-lg p-2 sm:p-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="rounded-md shadow-lg p-2">
+                  <CardConta icone="despesas.png" conta="Despesas" />
+                </div>
+                <div className="rounded-md shadow-lg p-2">
+                  <CardConta icone="receitas.png" conta="Receitas" />
+                </div>
+                <div className="rounded-md shadow-lg p-2">
+                  <CardConta icone="receitas.png" conta="Cartões de crédito" />
+                </div>
+                <div className="rounded-md shadow-lg p-2">
+                  <CardConta icone="saldo.png" conta="Saldo disponível" />
+                </div>
+                <div className="rounded-md shadow-lg p-2">
+                  <CardConta icone="investimento.png" conta="Investimentos" />
+                </div>
               </div>
-              <div className="flex w-full mb-10 rounded-md shadow-lg p-2">
-                <CardConta icone="receitas.png" conta="Receitas" />
-              </div>
-              <div className="flex w-full mb-10 rounded-md shadow-lg p-2">
-                <CardConta icone="receitas.png" conta="Cartões de crédito" />
-              </div>
-              <div className="flex w-full mb-10 rounded-md shadow-lg p-2">
-                <CardConta icone="saldo.png" conta="Saldo disponível" />
-              </div>
-              <div className="flex w-full mb-10 rounded-md shadow-lg p-2">
-                <CardConta icone="investimento.png" conta="Investimentos" />
-              </div>
-            </div>
+            </aside>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </DashboardProvider>
   );
 }

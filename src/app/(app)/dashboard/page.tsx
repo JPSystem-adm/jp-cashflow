@@ -4,6 +4,7 @@ import { decodeToken } from "@/lib/decodeToken";
 import { getBaseUrl } from "@/lib/getBaseUrl";
 import { redirect } from "next/navigation";
 import DashboardClient from "./_components/DashboardClient";
+import PageContainer from "@/app/(app)/_components/PageContainer";
 
 export default async function Page() {
   const cookieStore = cookies();
@@ -23,5 +24,9 @@ export default async function Page() {
 
   console.log("🟢 Dashboard | Usuário autenticado:", user.login);
 
-  return <DashboardClient />; // <-- Agora o conteúdo do Dashboard é separado num Client Component
+  return (
+    <PageContainer>
+      <DashboardClient />
+    </PageContainer>
+  );
 }

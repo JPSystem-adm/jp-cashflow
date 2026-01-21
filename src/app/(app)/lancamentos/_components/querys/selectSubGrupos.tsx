@@ -1,78 +1,123 @@
+// src/app/(app)/lancamentos/_components/querys/selectSubGrupos.tsx
 
-import { SelectSubGrupos } from "@/app/(app)/actions/selectActions";
-import { useLancamentoContext } from "../contextLancamentoProvider"
-import { useGlobalContext } from "@/app/(app)/contextGlobal";
-import { tySelects } from "@/types/types";
-import { useQuery} from 'react-query';
-import { Select, SelectTrigger, SelectContent, SelectGroup, SelectItem, SelectValue } from "@/components/ui/select";
+"use client";
 
-interface Props {
-  pai: string;
+import React, { useMemo } from "react";
+import { useQuery } from "react-query";
+
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import { useLancamentoContext } from "../contextLancamentoProvider";
+import { listarSubGruposPorGrupo } from "@/app/(app)/actions/lancamentoAPI";
+
+type SubGrupoOption = {
+  id: number;
+  nome: string;
+  grupoId: number;
+};
+
+function toSubGrupoOptions(data: unknown): SubGrupoOption[] {
+  if (!Array.isArray(data)) return [];
+  const out: SubGrupoOption[] = [];
+  for (const it of data) {
+    if (!it || typeof it !== "object") continue;
+    const obj = it as Record<string, unknown>;
+    const id = obj.id;
+    const nome = obj.nome;
+    const grupoId = obj.grupoId;
+
+    if (
+      typeof id === "number" &&
+      Number.isFinite(id) &&
+      id > 0 &&
+      typeof nome === "string" &&
+      nome.trim() &&
+      typeof grupoId === "number" &&
+      Number.isFinite(grupoId) &&
+      grupoId > 0
+    ) {
+      out.push({ id, nome, grupoId });
+    }
+  }
+  return out;
 }
 
-export default function ComboSubGrupos ({pai}: Props) { 
-  const { grupoId, formGrupoId,
-          subGrupoId, setSubGrupoId,
-          formSubGrupoId, setFormSubGrupoId
+export default function ComboSubGrupos({ pai }: { pai: "Filtro" | "Form" }) {
+  const {
+    // filtro
+    grupoId,
+    subGrupoId,
+    setSubGrupoId,
+    // form
+    formGrupoId,
+    formSubGrupoId,
+    setFormSubGrupoId,
   } = useLancamentoContext();
 
-  //Tratamento para o pai do componente
-  let padraoGrupoId: number = 0;
-  let valorDefault: string = "";
-  if(pai === "Filtros"){
-    padraoGrupoId = grupoId;
-    valorDefault = subGrupoId.toString();
-  }
-  if(pai === "Form"){
-    padraoGrupoId = formGrupoId;
-    valorDefault = formSubGrupoId.toString();
-  }
-  
+  const selectedGrupoId = pai === "Form" ? formGrupoId : grupoId;
+  const selectedSubGrupoId = pai === "Form" ? formSubGrupoId : subGrupoId;
 
-  //Carrega os Orcamentos
-  const { data, isLoading, refetch } = useQuery( ["listaSubGrupos", padraoGrupoId], async () => {
-    const response:tySelects[] = await SelectSubGrupos(padraoGrupoId);
-    //setListaGrupos(response);
-    return response;
-  })
+  const enabled = selectedGrupoId > 0;
 
-  if(isLoading){
-    return(
-      <div>
-        Carregando...
-      </div>
-    )
-  }
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["lancamentos", "subgrupos", "grupo", selectedGrupoId],
+    queryFn: async () => listarSubGruposPorGrupo(selectedGrupoId),
+    enabled,
+    refetchOnWindowFocus: false,
+  });
 
-  const onChange = async (value: string) =>{
-    //Tratamento conforme Pai
-    if(pai === "Filtros"){
-      setSubGrupoId(Number(value));
-    }
-    if(pai === "Form"){
-      setFormSubGrupoId(Number(value));
-    }
-    return true
-  }
+  const options = useMemo(() => toSubGrupoOptions(data), [data]);
 
-  return(
-    <div>
-      <Select defaultValue={valorDefault} onValueChange={onChange}>
-        <SelectTrigger className="w-full text-sky-800 border-2">
-          <SelectValue placeholder="Selecione a conta" />
+  const onChangeValue = (v: string) => {
+    const id = Number(v);
+    const safeId = Number.isFinite(id) && id > 0 ? id : 0;
+
+    if (pai === "Form") setFormSubGrupoId(safeId);
+    else setSubGrupoId(safeId);
+  };
+
+  return (
+    <div className="w-full">
+      {pai === "Filtro" ? <Label className="sr-only">Sub-Conta</Label> : null}
+
+      <Select
+        value={selectedSubGrupoId > 0 ? String(selectedSubGrupoId) : ""}
+        onValueChange={onChangeValue}
+        disabled={!enabled}
+      >
+        <SelectTrigger className="w-full bg-white">
+          <SelectValue
+            placeholder={
+              !enabled
+                ? "Selecione uma Conta primeiro"
+                : isLoading
+                  ? "Carregando..."
+                  : isError
+                    ? "Erro ao carregar"
+                    : "Selecione a Sub-Conta"
+            }
+          />
         </SelectTrigger>
-        <SelectContent className="border-2 border-sky-900 p-0 m-0">
-          <SelectGroup className="bg-white text-sky-900">
-            <SelectItem className="bg-sky-100  text-sky-900"  key={0} value={"0"}>Todos...</SelectItem>
-            { data?.map((item, index)=>(
-              <SelectItem className="bg-sky-100  text-sky-900"  key={index} value={item.id?.toString() || ""}>{item.nome}</SelectItem>
-            )
 
-            )}
-          </SelectGroup>
+        <SelectContent>
+          {!enabled ? (
+            <SelectItem value="0" disabled>
+              Selecione uma Conta primeiro
+            </SelectItem>
+          ) : options.length === 0 ? (
+            <SelectItem value="0" disabled>
+              Nenhuma sub-conta encontrada
+            </SelectItem>
+          ) : (
+            options.map((s) => (
+              <SelectItem key={s.id} value={String(s.id)}>
+                {s.nome}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
     </div>
-  )
-
+  );
 }

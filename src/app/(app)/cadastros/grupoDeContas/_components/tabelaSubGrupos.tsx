@@ -1,275 +1,334 @@
 // src/app/(app)/cadastros/grupoDeContas/_components/tabelaSubGrupos.tsx
-"use client"
-// COMPONENTE PAI
-import { Button } from "@/components/ui/button"
-import { CardContent, Card } from "@/components/ui/card"
-import { useEffect, useState } from "react"
-import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm"
-import NovoSubGrupo from "./novoSubGrupo"
-import EditaSubGrupo from "./editaSubGrupo"
-import { tyResult, tySubGrupo } from "@/types/types"
-import { Table, TableCaption, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table"
+
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "react-query";
-import { AlteraSubGrupo, CreateSubGrupo, DeleteSubGrupo, RetSubGrupos } from "@/app/(app)/actions/grupoActions"
-import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox"
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+
+import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
+import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 import queryClient from "@/lib/reactQuery";
 
+import NovoSubGrupo from "./novoSubGrupo";
+import EditaSubGrupo from "./editaSubGrupo";
+
+import type { tyResult, tySubGrupo } from "@/types/types";
+import {
+  listarSubGruposDoGrupo,
+  criarSubGrupoNoGrupo,
+  atualizarSubGrupo,
+  excluirSubGrupo,
+} from "@/app/(app)/actions/subGrupoAPI";
 
 interface Props {
-  origem: string;
+  origem: "Novo" | "Edicao";
   grupoId: number;
   dados: tySubGrupo[];
   setSubGruposP: React.Dispatch<React.SetStateAction<tySubGrupo[]>>;
 }
 
-export default function TabelaSubGrupos({origem, grupoId, dados, setSubGruposP }: Props) {
+function mkResult(status: "Sucesso" | "Erro", menssagem: string): tyResult {
+  return { status, menssagem, dados: {} };
+}
 
-  //Lista dos subGrupos
-  const [subGrupos, setSubGrupos] = useState<tySubGrupo[]>(dados)
- //const [alterou, setAlterou] = useState(false)
-  const [isEdita, setIsEdita] = useState(false)
-  const [indexSG, setIndexSG] = useState(0)
+export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP }: Props) {
+  const [subGrupos, setSubGrupos] = useState<tySubGrupo[]>(dados);
+  const [isEdita, setIsEdita] = useState<boolean>(false);
+  const [indexSG, setIndexSG] = useState<number>(0);
 
-  //Variaveis para a caixa de avisos (WarningBox)
-  const [showAlerta, setShowAlerta] = useState(false);
+  const [showAlerta, setShowAlerta] = useState<boolean>(false);
   const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
-  const [mensagem, setMensagem] = useState("Menssagem default");
+  const [mensagem, setMensagem] = useState<string>("");
 
-  //Função para fechar o formulário de edição dos dados
-  const handleFechar=()=>{
-    //setSubGruposP([]);
-    setIsEdita(false);
+  function fecharAviso(): void {
     setShowAlerta(false);
-  };
-
-  //Criação e execução do HOOK useQuery
-  //Carrega o grupo e seus subgrupos  
-  const { data, isLoading } = useQuery("subgrupos", async () => {
-    const retSubGrupos = await RetSubGrupos(grupoId);
-    setSubGrupos(retSubGrupos)
-    return retSubGrupos;
-  });
-  // Tratamento para exibição de menssagem de espera
-  // enquanto estiver processando a consulta do UseQuery
-  if(isLoading){
-    return(<div className="loading"><h1>Carregando...</h1></div>)
   }
 
-
-  //Função para incluir um subGrupo na lista
-  const handleAddSubGrupo = async (item: tySubGrupo) => {
-
-    //Uma validação para ver se o Nome do subgrupo já existe
-    const index = subGrupos.findIndex((subGrupo) => subGrupo.nome === item.nome)
-
-    let retorno:tyResult = {status: "", menssagem: "", dados: {}};
-
-    //Não tem duplicidade de Nome
-    if (index === -1) {
-
-      //Origem Edicao do Grupo
-      if(origem==="Edicao"){
-
-        try{
-          item.grupoId = grupoId;
-          retorno = await CreateSubGrupo(item) 
-          if(retorno.status === "Sucesso"){
-            const lista: tySubGrupo[] = [...subGrupos, item]
-            setSubGrupos(lista)
-            ordenarSubGrupos(lista) 
-          } 
-        }
-        catch(error){
-          retorno.status = "Erro"
-          retorno.menssagem = "Erro na execução da consulta" 
-          return retorno
-        }
-
-      }
-      //Origem Novo Grupo
-      else
-      {
-        const lista: tySubGrupo[] = [...subGrupos, item]
-        setSubGrupos(lista)
-        ordenarSubGrupos(lista) 
-        retorno.status = "Sucesso"
-        retorno.menssagem = "Incluido novo subGrupo!"
-      }
-
-      queryClient.invalidateQueries("grupos")
-      return retorno
-
-    }
-    //Duplicidade de Nome
-    else{
-        retorno.status = "Erro"
-        retorno.menssagem = "Nome de subGrupo duplicado verifique!"
-    }
-    return retorno
+  function sync(next: tySubGrupo[]): void {
+    setSubGrupos(next);
+    setSubGruposP(next);
   }
 
-  // Função para excluir um item da lista
-  const handleDeleteSubGrupo = async (index: number) => {
-    let retorno:tyResult = {status: "", menssagem: "", dados: {}};
-    console.log("AQUI: index: ", index);
+  // Modo NOVO: acompanha o state do pai
+  useEffect(() => {
+    if (origem === "Novo") setSubGrupos(dados);
+  }, [dados, origem]);
 
-    //Tratamento quando vem da Edição do Grupo
-    if(origem==="Edicao"){
-      const subGrupoId = subGrupos[index].id || 0;
-      //Apagar no Banco
-      try{
+  const shouldFetch = origem === "Edicao" && grupoId > 0;
 
-        retorno = await DeleteSubGrupo(subGrupoId) 
-        if(retorno.status === "Sucesso"){
-
-          const newArray = [
-            ...subGrupos.slice(0, index),
-            ...subGrupos.slice(index + 1),
-          ]
-          setSubGrupos(newArray)
-          setSubGruposP(newArray)
-        } 
-      }
-      catch(error){
-        retorno.status = "Erro"
-        retorno.menssagem = "Erro na execução da consulta" 
-        return retorno
-      }
+  const { isLoading, isError, error } = useQuery<tySubGrupo[], Error>(
+    ["subgrupos-do-grupo", grupoId],
+    async () => {
+      const list = await listarSubGruposDoGrupo(grupoId);
+      sync(list);
+      return list;
+    },
+    {
+      enabled: shouldFetch,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 0,
     }
-    //Tratamento quando vem de um Novo Grupo
-    else{
-      const newArray = [
-        ...subGrupos.slice(0, index),
-        ...subGrupos.slice(index + 1),
-      ]
-      setSubGrupos(newArray)
-      setSubGruposP(newArray)
-    }
-    queryClient.invalidateQueries("subgrupos")
-    queryClient.invalidateQueries("grupos") 
-    //setIsEdita(true)
+  );
 
+  const listaOrdenada = useMemo(() => {
+    return [...subGrupos].sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [subGrupos]);
+
+  async function handleAddSubGrupo(item: tySubGrupo): Promise<tyResult> {
+    const nome = item.nome.trim().toUpperCase();
+    if (!nome) return mkResult("Erro", "Informe o nome do subgrupo.");
+
+    const duplicado = subGrupos.some((sg) => sg.nome.trim().toUpperCase() === nome);
+    if (duplicado) return mkResult("Erro", "Nome de subgrupo duplicado dentro do grupo.");
+
+    // NOVO: só local
+    if (origem === "Novo") {
+      const next = [...subGrupos, { ...item, nome, ativo: item.ativo ?? true }];
+      sync(next);
+      queryClient.invalidateQueries("grupos");
+      return mkResult("Sucesso", "Subgrupo incluído (pendente de salvar o grupo).");
+    }
+
+    // EDICAO: persistir na API (rota aninhada)
+    try {
+      const res = await criarSubGrupoNoGrupo(grupoId, {
+        nome,
+        descricao: item.descricao,
+      });
+
+      if (res.status >= 300) {
+        const msg =
+          typeof res.dados === "object" && res.dados !== null && "message" in (res.dados as Record<string, unknown>)
+            ? String((res.dados as Record<string, unknown>).message)
+            : res.statusText;
+
+        return mkResult("Erro", msg);
+      }
+
+      // Recarrega a lista oficial da API (mais seguro)
+      queryClient.invalidateQueries(["subgrupos-do-grupo", grupoId]);
+      queryClient.invalidateQueries("grupos");
+      return mkResult("Sucesso", "Subgrupo criado com sucesso!");
+    } catch (e) {
+      return mkResult("Erro", e instanceof Error ? e.message : "Erro inesperado ao criar subgrupo.");
+    }
   }
 
-  //Função para exibir o formulario de edição do subGrupo
-  const handleEditSubGrupo = async (nome?: string) => {
-    // Encontra o índice do objeto com o id fornecido
-    const index = subGrupos.findIndex(item => item.nome === nome);
-    setIndexSG(index)
-    setIsEdita(true)
-  //   //console.log("Index-G: ", index)
+  function handleEditSubGrupo(nome?: string): void {
+    if (!nome) return;
+    const idx = subGrupos.findIndex((x) => x.nome === nome);
+    if (idx < 0) return;
+    setIndexSG(idx);
+    setIsEdita(true);
   }
 
-  const EditSubGrupo = async (nome: string, novosDados: { descricao?: string; ativo?: boolean }) => {
-    setSubGrupos(prevSubtipo =>
-      prevSubtipo.map(elemento =>
-        elemento.nome === nome ? { ...elemento, ...novosDados } : elemento
-      )
-    );
-    setSubGruposP(subGrupos)
+  async function handleApplyEdit(
+    nome: string,
+    novosDados: { descricao?: string; ativo?: boolean }
+  ): Promise<boolean> {
+    const atual = subGrupos.find((x) => x.nome === nome);
+    if (!atual) return false;
+
+    // NOVO: só local
+    if (origem === "Novo") {
+      const next = subGrupos.map((sg) => (sg.nome === nome ? { ...sg, ...novosDados } : sg));
+      sync(next);
+      queryClient.invalidateQueries("grupos");
+      return true;
+    }
+
+    // EDICAO: patch via rota própria (sua doc diz que aqui só permite descricao/ativo)
+    const id = atual.id ?? 0;
+    if (id <= 0) {
+      setTipo(tipoEnu.Erro);
+      setMensagem("ID do subgrupo inválido para atualização.");
+      setShowAlerta(true);
+      return false;
+    }
+
+    const res = await atualizarSubGrupo(id, {
+      descricao: novosDados.descricao,
+      ativo: novosDados.ativo,
+    });
+
+    if (res.status >= 300) {
+      setTipo(tipoEnu.Erro);
+      setMensagem("Não foi possível atualizar o subgrupo.");
+      setShowAlerta(true);
+      return false;
+    }
+
+    queryClient.invalidateQueries(["subgrupos-do-grupo", grupoId]);
+    queryClient.invalidateQueries("grupos");
     return true;
-  };
+  }
 
-  //Função para ordenar a lista
-  async function ordenarSubGrupos(itens: tySubGrupo[]) {
-    console.log("Ordenou")
-    const listOrdenada = itens.sort((a, b) => {
-      if (a.nome < b.nome) {
-        return -1
-      }
-      if (a.nome > b.nome) {
-        return 1
-      }
-      return 0
-    })
-    setSubGrupos(listOrdenada)
-    setSubGruposP(listOrdenada)
+  async function handleDeleteSubGrupo(index: number): Promise<void> {
+    const item = subGrupos[index];
+    if (!item) return;
+
+    // NOVO: só local
+    if (origem === "Novo") {
+      const next = subGrupos.filter((_, i) => i !== index);
+      sync(next);
+      queryClient.invalidateQueries("grupos");
+      return;
+    }
+
+    // EDICAO: deletar pela rota própria (bloqueia se tiver lançamentos)
+    const id = item.id ?? 0;
+    if (id <= 0) {
+      setTipo(tipoEnu.Erro);
+      setMensagem("ID do subgrupo inválido para exclusão.");
+      setShowAlerta(true);
+      return;
+    }
+
+    const res = await excluirSubGrupo(id);
+
+    if (res.status >= 300) {
+      // tenta extrair mensagem (muito útil no bloqueio por lançamentos)
+      const msg =
+        typeof res.dados === "object" && res.dados !== null && "message" in (res.dados as Record<string, unknown>)
+          ? String((res.dados as Record<string, unknown>).message)
+          : "Não foi possível excluir. Pode haver lançamentos vinculados.";
+
+      setTipo(tipoEnu.Erro);
+      setMensagem(msg);
+      setShowAlerta(true);
+      return;
+    }
+
+    queryClient.invalidateQueries(["subgrupos-do-grupo", grupoId]);
+    queryClient.invalidateQueries("grupos");
+  }
+
+  if (isLoading) {
+    return <div className="p-4 text-center text-sky-900">Carregando subgrupos...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 text-center text-red-700">
+        Erro ao carregar subgrupos: {error?.message ?? "Erro desconhecido"}
+      </div>
+    );
   }
 
   return (
     <>
-    { showAlerta && (
-        <WarningBox
-          tipo={tipo}
-          mensagem={mensagem}
-          onCancel={handleFechar}
-        />
-      )
-    } 
-    <div className="flex flex-col w-full items-center">
-      <Card className="w-full">
-        <CardContent className="p-0">
-          <Table>
-            <TableCaption className="caption-top">
-              <div className="flex flex-row justify-around w-full gap-4">
-                <div className="flex  font-bold space-y-2">
-                  <span className="flex text-2xl ">Lista de SubGrupos</span>
+      {showAlerta && <WarningBox tipo={tipo} mensagem={mensagem} onCancel={fecharAviso} />}
+
+      <div className="w-full">
+        <Card className="w-full">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between gap-3 p-3">
+              <div className="font-bold">
+                <div className="text-lg sm:text-2xl text-sky-900">Subgrupos</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  {origem === "Novo"
+                    ? "Monte os subgrupos antes de salvar o grupo."
+                    : "Gerencie os subgrupos do grupo."}
                 </div>
-               {/* ================================ */}
-                <div className="flex justify-end">
-                  <NovoSubGrupo
-                    //data={subGrupos}
-                    onAddItem={handleAddSubGrupo}
-                  />
-                </div>
-                {/* ================================ */}
               </div>
-            </TableCaption>
-            <TableHeader>
-              <TableRow>
-                {/* <TableHead className="w-[100px]">Indice</TableHead> */}
-                <TableHead>Nome</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead>Excluir</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {subGrupos.map((grupo, index) => (
-                <TableRow key={index} className={grupo.ativo ? 'text-black' : 'text-red-500'} >
-                  {/* <TableCell className="font-medium">{index}</TableCell> */}
-                  <TableCell className="text-sky-900">{grupo.nome}</TableCell>
-                  <TableCell className="text-sky-900">{grupo.descricao}</TableCell>
-                  <TableCell className="text-sky-900">{grupo.ativo ? 'True' : 'False'}</TableCell>
-                  <TableCell className="text-sky-900">
-                    <Button
-                      onClick={() => handleEditSubGrupo(grupo.nome)} 
-                      className="h-8 w-8" 
-                      size="icon" 
-                      variant="ghost"
-                    >
-                      <FileEditIcon className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
-                      onClick={() => handleDeleteSubGrupo(index)}
-                      className="h-8 w-8"
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      {/* === Formulario para edição do subGrupo === */}
-        {
-          isEdita && (
-            <EditaSubGrupo
-              onEditItem={EditSubGrupo} 
-              data={subGrupos[indexSG]}
-              isEdita={isEdita}
-              setIsEdita={setIsEdita}
-            />
-          )
-        }
-      {/* =========================================== */}
-    </div>
+
+              <NovoSubGrupo onAddItem={handleAddSubGrupo} />
+            </div>
+
+            <div className="overflow-x-auto px-2 pb-3">
+              <Table className="min-w-[720px] rounded-2xl border-sky-800 border-2 shadow">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-base sm:text-lg">
+                      Nome
+                    </TableHead>
+                    <TableHead className="hidden sm:table-cell bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-base sm:text-lg">
+                      Descrição
+                    </TableHead>
+                    <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-base sm:text-lg w-[110px]">
+                      Ativo
+                    </TableHead>
+                    <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-base sm:text-lg w-[140px]">
+                      Ações
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {listaOrdenada.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="border-2 border-sky-900 text-center text-slate-500">
+                        Nenhum subgrupo encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    listaOrdenada.map((sg, idx) => (
+                      <TableRow
+                        key={`${sg.id ?? "x"}-${sg.nome}-${idx}`}
+                        className={`hover:bg-slate-200 ${
+                          sg.ativo === false ? "text-red-900 bg-red-100" : "text-sky-900"
+                        }`}
+                      >
+                        <TableCell className="border-2 border-sky-900 text-center text-base sm:text-lg">
+                          {sg.nome}
+                        </TableCell>
+
+                        <TableCell className="hidden sm:table-cell border-2 border-sky-900 text-center text-base sm:text-lg">
+                          {sg.descricao}
+                        </TableCell>
+
+                        <TableCell className="border-2 border-sky-900 text-center text-base sm:text-lg">
+                          {sg.ativo === false ? "Não" : "Sim"}
+                        </TableCell>
+
+                        <TableCell className="border-2 border-sky-900 text-center">
+                          <div className="flex gap-1 justify-center">
+                            <Button
+                              onClick={() => handleEditSubGrupo(sg.nome)}
+                              className="h-8 w-8"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <FileEditIcon className="h-5 w-5" />
+                              <span className="sr-only">Editar</span>
+                            </Button>
+
+                            <Button
+                              onClick={() => void handleDeleteSubGrupo(idx)}
+                              className="h-8 w-8"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <TrashIcon className="h-5 w-5 text-red-700" />
+                              <span className="sr-only">Excluir</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isEdita && subGrupos[indexSG] && (
+          <EditaSubGrupo
+            onEditItem={handleApplyEdit}
+            data={subGrupos[indexSG]}
+            isEdita={isEdita}
+            setIsEdita={setIsEdita}
+          />
+        )}
+      </div>
     </>
-  )
+  );
 }

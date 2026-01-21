@@ -4,50 +4,49 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-import ClientDrawer from "./_components/ClientDrawer"; // Importando o Client Component
+import ClientDrawer from "./_components/ClientDrawer";
 
-// COMPONENTES E PROVIDERS
-//==========================================================
-import {Query2ClientProvider} from "@/lib/queryProvider";
+// PROVIDERS / COMPONENTES
+import { Query2ClientProvider } from "@/lib/queryProvider";
 import queryClient from "@/lib/reactQuery";
 import { GlobalProvider } from "./contextGlobal";
 import Cabecalho from "./cabecalho/cabecalho";
 import Rodape from "./rodape/rodape";
 
-//import AuthProvider from "@/components/providers/auth-provider"; // Este pode ser mantido se for controle custom
-//==========================================================
-
-// FONTE
 const inter = Inter({ subsets: ["latin"] });
-
 
 export const metadata: Metadata = {
   title: "JP Cash Flow",
   description: "Para suas necessidades financeiras",
 };
 
-export default async function RootLayout({
-  children, userId
-}: Readonly<{ children: React.ReactNode, userId: string | undefined}>) {
-
-  console.log("Entrou no layout Raiz da seção APP")
-
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <>
-    <Query2ClientProvider client={queryClient}>
-      <GlobalProvider userId={ userId ? Number(userId): 0}>
-        <Cabecalho/>
-        {/* ===== Parte central ===== */}
-        <div className="flex flex-col flex-grow w-auto pt-14 pb-4">
-          <ClientDrawer />
-          <div className="flex flex-col flex-grow items-center h-auto w-auto pr-8 pl-8 pt-2 pb-2 bg-white  overflow-x-auto">
-            {children}
-          </div>
-        </div>
-        {/* ======================== */}
-        <Rodape/>
-      </GlobalProvider>
-    </Query2ClientProvider>
-    </>
+    <html lang="pt-BR" className="light" suppressHydrationWarning>
+      <body className={inter.className}>
+        <Query2ClientProvider client={queryClient}>
+          <GlobalProvider userId={0}>
+            <Cabecalho />
+
+            {/* ===== Parte central ===== */}
+            <div className="flex min-h-screen flex-col pt-14">
+              <ClientDrawer />
+
+              {/* Conteúdo */}
+              <main className="flex flex-1 flex-col items-center bg-white">
+                <div className="w-full max-w-6xl px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 overflow-x-auto">
+                  {children}
+                </div>
+              </main>
+
+              <Rodape />
+            </div>
+            {/* ======================== */}
+          </GlobalProvider>
+        </Query2ClientProvider>
+      </body>
+    </html>
   );
 }

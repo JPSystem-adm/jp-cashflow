@@ -1,8 +1,10 @@
+// src/app/(app)/cabecalho/periodo.tsx
 "use client";
 
+import { useMemo } from "react";
 import { useGlobalContext } from "../contextGlobal";
-import { VerificaPeriodo } from "@/app/(app)/actions/orcamentoActions";
-import { retPeriodoAtual } from "@/lib/formatacoes";
+import { ensurePeriodo } from "@/app/(app)/actions/periodoAPI";
+
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -12,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect } from "react";
 
 const meses = [
   "Janeiro",
@@ -29,10 +30,8 @@ const meses = [
   "Dezembro",
 ];
 
-function obterMesAno() {
-  //const anoAtual = new Date().getFullYear();
-  const anoAtual = 2023;
-  const mesAno = [];
+function buildMesAno(anoAtual: number): string[] {
+  const mesAno: string[] = [];
   for (let ano = anoAtual; ano <= anoAtual + 10; ano++) {
     for (let mes = 0; mes < meses.length; mes++) {
       mesAno.push(`${meses[mes]}/${ano}`);
@@ -42,65 +41,51 @@ function obterMesAno() {
 }
 
 export default function Periodo() {
-  const { usuarioId, periodo, setPeriodo, periodoId, setPeriodoId } =
-    useGlobalContext();
+  const { usuarioId, periodo, setPeriodo, setPeriodoId } = useGlobalContext();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (periodoId < 1) {
-        const atualPeriodo = retPeriodoAtual();
-        const resultado = await VerificaPeriodo(usuarioId, atualPeriodo);
-        setPeriodo(retPeriodoAtual());
-        setPeriodoId(resultado.regId);
-      }
-    };
-    fetchData();
-  }, [periodoId, usuarioId, setPeriodo, setPeriodoId]);
+  const opcoes = useMemo(() => buildMesAno(new Date().getFullYear()), []);
 
   const onChange = async (value: string) => {
-    const resultado = await VerificaPeriodo(usuarioId, value);
-    if (resultado.status === "Sucesso") {
-      setPeriodoId(resultado.regId);
-      setPeriodo(value);
+    if (usuarioId < 1) return;
+
+    const prev = periodo;
+
+    // UX: mostra a escolha imediatamente
+    setPeriodo(value);
+
+    try {
+      const id = await ensurePeriodo(value);
+      if (!Number.isFinite(id) || id <= 0) {
+        // se vier inválido, volta pro anterior
+        setPeriodo(prev);
+        return;
+      }
+
+      // troca o id sem passar por 0
+      setPeriodoId(id);
+    } catch (e) {
+      console.error("Erro ao garantir período:", e);
+      // volta pro anterior pra não ficar "período sem id"
+      setPeriodo(prev);
     }
-    return true;
   };
 
   return (
-    <div className="flex flex-row justify-center items-center">
-      <div className="mr-2">
-        <Label className="h-[40px] font-bold text-xl text-sky-50 flex items-center">
-          Período Ativo
-        </Label>
-      </div>
-      <div className="w-[250px]">
-        <Select defaultValue={periodo} onValueChange={onChange}>
-          <SelectTrigger className={`
-            w-full 
-            h-[40px] 
-            text-xl flex 
-            items-center`}>
-            <SelectValue placeholder="Selecione o periodo" />
+    <div className="flex items-center gap-2">
+      <Label className="hidden md:flex font-semibold text-base text-sky-50 items-center">
+        Período
+      </Label>
+
+      <div className="w-[170px] sm:w-[220px]">
+        <Select value={periodo} onValueChange={onChange}>
+          <SelectTrigger className="h-9 bg-white/10 border-white/20 text-sky-50">
+            <SelectValue placeholder="Selecione" />
           </SelectTrigger>
-          <SelectContent className={`
-            //max-h-[500px] 
-            //opacity-100 
-            border-2 
-            border-sky-950
-            p-0 m-0 
-            //bg-sky-100 
-            //text-sky-900`}>
-            <SelectGroup className={`
-              //hover:bg-sky-900 
-              //hover:text-sky-100 
-              bg-white 
-              text-sky-900`}>
-              {obterMesAno().map((mesAno, index) => (
-                <SelectItem
-                  className="bg-sky-100 text-sky-900"
-                  key={index}
-                  value={mesAno}
-                >
+
+          <SelectContent className="border border-sky-950 p-0 bg-white">
+            <SelectGroup className="bg-white text-sky-900">
+              {opcoes.map((mesAno) => (
+                <SelectItem key={mesAno} value={mesAno} className="text-sky-900">
                   {mesAno}
                 </SelectItem>
               ))}

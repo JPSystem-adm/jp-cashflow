@@ -1,25 +1,44 @@
+// src/app/(app)/cadastros/grupoDeContas/_components/editaGrupo.tsx
+
 "use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlteraGrupo, RetGrupo, RetSubGrupos } from "@/app/(app)/actions/grupoActions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { z } from "zod";
-import React, { FormEventHandler, useEffect, useState } from "react";
-import TabelaSubGrupos from "./tabelaSubGrupos";
 import { Textarea } from "@/components/ui/textarea";
-import { tyGrupo, tySubGrupo, tipoGrupo, tyResult } from "@/types/types";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { FaChevronDown } from "react-icons/fa"; // Ícone de seta para baixo
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FaChevronDown } from "react-icons/fa";
+
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
 import queryClient from "@/lib/reactQuery";
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
+import { tipoGrupo } from "@/types/types";
+import type { tyGrupo } from "@/types/types";
+
+
+import { atualizarGrupo } from "@/app/(app)/actions/grupoAPI";
+import TabelaSubGrupos from "./tabelaSubGrupos";
+
+// Se você quiser usar seu contexto global (pra limpar também), mantém:
+import { useGlobalContext } from "@/app/(app)/contextGlobal";
 
 interface Props {
-  pIndice: number;
+  pIndice: number; // legado do seu componente pai (não vamos usar como id real)
   pItem: tyGrupo | undefined;
   isEdita: boolean;
   setIsEdita: React.Dispatch<React.SetStateAction<boolean>>;
@@ -29,123 +48,181 @@ const schema = z.object({
   nome: z.string().min(2, "Campo obrigatório!"),
   descricao: z.string().min(2, "Campo obrigatório!"),
   ativo: z.boolean().default(true),
-  tipo: z
-  .nativeEnum(tipoGrupo, {
+  tipo: z.nativeEnum(tipoGrupo, {
     errorMap: () => ({
-           message:
-           "Informe 'D' para débito, 'C' para crédito ou 'M' para conta de movimentação.",
+      message: "Informe 'D' para débito, 'C' para crédito ou 'M' para conta de movimentação.",
     }),
   }),
 });
 
 type FormProps = z.infer<typeof schema>;
 
-export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: Props) {
-  //O variavel isEdita substitui isOpen e é tratada no formulario pai e serve
-  //para controle do formulario de edição doso dados (EditaGrupoForm)
+function getSubdomainFromHost(): string | null {
+  if (typeof window === "undefined") return null;
+  const host = window.location.host; // ex: jp.localhost:3000
+  const hostname = host.split(":")[0];
+  const isLocalhost = hostname.includes("localhost");
+  const parts = hostname.split(".");
 
-  //Função para fechar a SHEET
-  const handleClose = () => {
-    setIsEdita(false);
-  };
+  if (isLocalhost && parts.length === 2) return parts[0]; // jp.localhost
+  if (!isLocalhost && parts.length >= 3) return parts[0]; // cliente.dominio.com
+  return null;
+}
 
-  //Definição do formulario
+export default function EditaGrupoForm({ pItem, isEdita, setIsEdita }: Props) {
+  const router = useRouter();
+
+  // 🔥 Pra forçar logout “completo” (cookie + contexto global)
+  const {
+    setUsuarioId,
+    setUsuarioLogin,
+    setUsuarioNome,
+    setUsuarioPerfil,
+    setEmailVerificacao,
+    setCodigoVerificacao,
+  } = useGlobalContext();
+
+  const [showAlerta, setShowAlerta] = useState(false);
+  const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
+  const [mensagem, setMensagem] = useState("Mensagem default");
+
+  const grupoId = useMemo(() => {
+    const id = pItem?.id;
+    return typeof id === "number" ? id : 0;
+  }, [pItem?.id]);
+
   const form = useForm<FormProps>({
     resolver: zodResolver(schema),
-    defaultValues: { 
-      nome: pItem?.nome,
-      descricao: pItem?.descricao,
-      tipo: pItem?.tipo,
-      ativo: (pItem?.ativo? true: false),
+    defaultValues: {
+      nome: pItem?.nome ?? "",
+      descricao: pItem?.descricao ?? "",
+      tipo: pItem?.tipo ?? tipoGrupo.Debito,
+      ativo: Boolean(pItem?.ativo),
     },
   });
 
-  //um array para manipular os dados do grupo
-  //ante de enviar para o banco de dados
-  const [grupoP, setGrupoP] = useState<tyGrupo | undefined>(pItem);
-   //um array para manipular os dados do subgrupo na lista
-  //ante de enviar para o banco de dados
-  const [subGruposP, setSubGruposP] = useState<tySubGrupo[]>([]);
+  // Quando trocar o item (clicar em outro grupo), atualiza o form
+  useEffect(() => {
+    if (!pItem) return;
+    form.reset({
+      nome: pItem.nome ?? "",
+      descricao: pItem.descricao ?? "",
+      tipo: pItem.tipo ?? tipoGrupo.Debito,
+      ativo: Boolean(pItem.ativo),
+    });
+  }, [pItem, form]);
 
-  //Variaveis para a caixa de avisos (WarningBox)
-  const [showAlerta, setShowAlerta] = useState(false);
-  const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
-  const [mensagem, setMensagem] = useState("Menssagem default");
+  function forceLogout() {
+    // 🧹 Cookie
+    document.cookie = "token=; Max-Age=0; path=/";
 
-  //Função para fechar o formulário de edição dos dados
-  const handleFechar=()=>{
-    setSubGruposP([]);
-    setShowAlerta(false);
-    if(tipo === tipoEnu.Sucesso){
-      setIsEdita(false);
-    }
-  };
+    // 🧹 Contexto global
+    setUsuarioId(0);
+    setUsuarioLogin("");
+    setUsuarioNome("");
+    setUsuarioPerfil("");
+    setEmailVerificacao("");
+    setCodigoVerificacao("");
 
-  function onSubmit(values: FormProps, e: any) {
-    //e.preventDefault();
-    const novoGrupo: tyGrupo = {
-      id: grupoP?.id,
-      nome: values.nome,
-      descricao: values.descricao,
-      tipo: values.tipo,
-      ativo: values.ativo,
-    };
-    altGrupo(novoGrupo);
-
+    // 🔁 Vai pro login com user do subdomínio (se tiver)
+    const sub = getSubdomainFromHost();
+    if (sub) router.replace(`/login?user=${encodeURIComponent(sub)}`);
+    else router.replace("/login");
   }
 
-  async function altGrupo(dadosGrupo: tyGrupo) {
-    let retorno:tyResult ;
-    try {
-      retorno = await AlteraGrupo(dadosGrupo)
-      if(retorno.status === "Sucesso"){
-        setTipo(tipoEnu.Sucesso);
-        setMensagem(`A grupo foi alterado com sucesso!` );
-        setShowAlerta(true);
-        queryClient.invalidateQueries("grupos")        
-      }else{
-        if(retorno.menssagem === "P2002")
-        {
-          setTipo(tipoEnu.Erro);
-          setMensagem("Erro de relacionamento!" );
-          setShowAlerta(true);
-        }else{
-          setTipo(tipoEnu.Erro);
-          setMensagem("O correu um erro inesperado no servidor!" );
-          setShowAlerta(true);
-        }
-      }    
-    } catch (error) {
+  function handleClose() {
+    setIsEdita(false);
+  }
+
+  function handleFecharAviso() {
+    setShowAlerta(false);
+    if (tipo === tipoEnu.Sucesso) {
+      setIsEdita(false);
+    }
+  }
+
+  async function onSubmit(values: FormProps) {
+    if (!grupoId) {
       setTipo(tipoEnu.Erro);
-      setMensagem(`Ocorreu um erro inesperado! ${error}` );
-      setShowAlerta(true);     
+      setMensagem("Grupo inválido. Recarregue a página e tente novamente.");
+      setShowAlerta(true);
+      return;
+    }
+
+    // Regras especiais: se quiser travar edição de nomes específicos
+    const nomeUpper = (values.nome ?? "").toUpperCase();
+    const isNomeProtegido = nomeUpper === "ENTRADA" || nomeUpper === "TRANSFERENCIAS";
+
+    const payload = {
+      nome: isNomeProtegido ? pItem?.nome : values.nome,
+      descricao: values.descricao,
+      tipo: values.tipo, // hoje você deixa disabled, mas ok manter
+      ativo: values.ativo,
+    };
+
+    try {
+      const retorno = await atualizarGrupo(grupoId, payload);
+
+      if (retorno.status === 401) {
+        setTipo(tipoEnu.Erro);
+        setMensagem("Sua sessão expirou. Vou te deslogar pra você entrar de novo.");
+        setShowAlerta(true);
+
+        // dá um micro “respiro” pro usuário ver o aviso (opcional)
+        // mas sem promessa de background: aqui é instantâneo
+        forceLogout();
+        return;
+      }
+
+      if (retorno.status < 300) {
+        setTipo(tipoEnu.Sucesso);
+        setMensagem("Grupo alterado com sucesso!");
+        setShowAlerta(true);
+        queryClient.invalidateQueries("grupos");
+        return;
+      }
+
+      // outros erros
+      setTipo(tipoEnu.Erro);
+
+      // tenta puxar msg de retorno.dados
+      const maybeObj = retorno.dados as unknown;
+      let msg = "Ocorreu um erro inesperado no servidor.";
+
+      if (typeof maybeObj === "object" && maybeObj !== null) {
+        const o = maybeObj as Record<string, unknown>;
+        const m = o.erro ?? o.message ?? o.error;
+        if (typeof m === "string" && m.trim()) msg = m;
+      }
+
+      setMensagem(msg);
+      setShowAlerta(true);
+    } catch (err) {
+      setTipo(tipoEnu.Erro);
+      setMensagem(`Ocorreu um erro inesperado! ${String(err)}`);
+      setShowAlerta(true);
     }
   }
 
   return (
     <>
-    { showAlerta && (
-          <WarningBox
-            tipo={tipo}
-            mensagem={mensagem}
-            onCancel={handleFechar}
-          />
-        )
-    }     
-    <Sheet open={isEdita} onOpenChange={setIsEdita} >
-      <SheetContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[600px] min-w-[780px] overflow-auto rounded-2xl bg-white p-6 shadow-lg">
-        <SheetHeader>
-          <SheetTitle className="text-2xl text-sky-900">Editar grupo de Contas </SheetTitle>
-        </SheetHeader>
-        {isEdita && (
-          <div className="mt-8">
+      {showAlerta && (
+        <WarningBox tipo={tipo} mensagem={mensagem} onCancel={handleFecharAviso} />
+      )}
+
+      <Sheet open={isEdita} onOpenChange={setIsEdita}>
+        <SheetContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[650px] w-[95vw] sm:w-[820px] overflow-auto rounded-2xl bg-white p-6 shadow-lg">
+          <SheetHeader>
+            <SheetTitle className="text-2xl text-sky-900">
+              Editar grupo de Contas
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6">
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-12 gap-4">
-                  <div className="col-span-5">
+                  <div className="col-span-12 sm:col-span-5">
                     <FormField
                       control={form.control}
                       name="nome"
@@ -154,7 +231,10 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                           <FormLabel className="text-sky-900">Nome</FormLabel>
                           <FormControl>
                             <Input
-                              disabled={field.value === "ENTRADA" ? true : field.value === "TRANSFERENCIAS" ? true : false}
+                              disabled={
+                                field.value?.toUpperCase() === "ENTRADA" ||
+                                field.value?.toUpperCase() === "TRANSFERENCIAS"
+                              }
                               className="placeholder:text-sky-800 border-2 border-sky-900"
                               {...field}
                             />
@@ -164,7 +244,8 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                       )}
                     />
                   </div>
-                  <div className="col-span-5">
+
+                  <div className="col-span-12 sm:col-span-5">
                     <FormField
                       control={form.control}
                       name="tipo"
@@ -173,7 +254,7 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                           <FormLabel className="text-sky-900">Tipo</FormLabel>
                           <FormControl>
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild disabled={true}>
+                              <DropdownMenuTrigger asChild disabled>
                                 <Button
                                   variant="outline"
                                   className="w-full text-sm flex items-center justify-between hover:bg-slate-200 text-sky-900 border-sky-900"
@@ -186,6 +267,7 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                                   <FaChevronDown />
                                 </Button>
                               </DropdownMenuTrigger>
+
                               <DropdownMenuContent className="bg-white text-sm border-2 border-sky-900 text-sky-800">
                                 <DropdownMenuItem
                                   className="hover:shadow-xl hover:bg-slate-200 text-sm"
@@ -213,19 +295,20 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                       )}
                     />
                   </div>
-                  <div className="col-span-2">
+
+                  <div className="col-span-12 sm:col-span-2 flex flex-col items-center justify-start sm:mt-6">
                     <FormField
                       control={form.control}
                       name="ativo"
                       render={({ field }) => (
-                        <FormItem className="col-span-1 flex flex-col items-center mt-5">
+                        <FormItem className="flex flex-col items-center">
                           <FormLabel className="text-sky-900">Ativo</FormLabel>
                           <FormControl>
                             <Checkbox
                               id="ativo"
                               className="border-2 border-sky-900"
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(v) => field.onChange(Boolean(v))}
                             />
                           </FormControl>
                           <FormMessage />
@@ -234,14 +317,13 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                     />
                   </div>
                 </div>
+
                 <FormField
                   control={form.control}
                   name="descricao"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sky-900">
-                        Descrição
-                      </FormLabel>
+                      <FormLabel className="text-sky-900">Descrição</FormLabel>
                       <FormControl>
                         <Textarea
                           className="placeholder:text-sky-800 border-2 border-sky-900"
@@ -252,39 +334,44 @@ export default function EditaGrupoForm({ pIndice, pItem, isEdita, setIsEdita }: 
                     </FormItem>
                   )}
                 />
-                <div className="text-sm font-semibold flex justify-end mt-7 text-sky-900">
-                  <SheetFooter className="text-sm mb-8 font-semibold flex justify-end mt-7">
-                    <Button
-                      variant="outline"
-                      className="text-lg px-2 py-1 hover:bg-slate-200 border-sky-800 border-2"
-                      type="submit"
-                      //onClick={() => setIsSubmit(true)}
-                    >
-                      Salvar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="text-lg px-2 py-1 hover:bg-slate-200 border-sky-800 border-2 ml-3"
-                      onClick={handleClose}
-                    >
-                      Cancelar
-                    </Button>
-                  </SheetFooter>
-                </div>
+
+                <SheetFooter className="flex justify-end gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="text-lg px-4 py-2 hover:bg-slate-200 border-sky-800 border-2"
+                    type="submit"
+                  >
+                    Salvar
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-lg px-4 py-2 hover:bg-slate-200 border-sky-800 border-2"
+                    onClick={handleClose}
+                  >
+                    Cancelar
+                  </Button>
+                </SheetFooter>
               </form>
             </Form>
-            <div className="text-sky-900">
+
+            <div className="mt-6 text-sky-900">
+              {/* ✅ Aqui é o pulo do gato: passa o ID real do grupo */}
               <TabelaSubGrupos
                 origem="Edicao"
-                grupoId={pIndice}
-                dados={subGruposP}
-                setSubGruposP={setSubGruposP}
+                grupoId={grupoId}
+                dados={[]}
+                // você estava usando subGruposP aqui.
+                // Se sua TabelaSubGrupos usa dados+set, ok:
+                setSubGruposP={() => {
+                  /* no-op aqui; vamos ajustar quando revisar TabelaSubGrupos */
+                }}
               />
             </div>
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

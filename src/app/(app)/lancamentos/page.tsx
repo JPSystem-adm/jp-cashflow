@@ -1,28 +1,52 @@
 // src/app/(app)/lancamentos/page.tsx
+"use client";
+
+import { useState } from "react";
+
+import PageContainer from "@/app/(app)/_components/PageContainer";
+import { Button } from "@/components/ui/button";
 
 import TabelaLancamentos from "./_components/tabelaLancamentos";
 import { LancamentoProvider } from "./_components/contextLancamentoProvider";
 import PainelFiltros from "./_components/painelFiltros";
+import LancamentosForm from "./_components/LancamentosForm";
 
-export default async function LancamentosPage() {
+export default function LancamentosPage() {
+  const [openNovo, setOpenNovo] = useState(false);
+
   return (
     <LancamentoProvider>
-      <div className="overflow-x-auto min-w-screen w-[90%] min-h-screen max-w-[1400px] min-w-[500px]">
-        <div className="justify-items-center flex flex-col md:justify-center md:px-6 md:gap-5">
-          <div className="flex flex-col w-full gap-4">
-            <h1 className="text-2xl font-bold tracking-tighter text-center text-sky-900">
-              Grupos de Lançamentos
-            </h1>
-            <p className="mb-6 text-sky-800 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400 text-center">
-              Gerenciar os lançamentos para o controle financeiro
-            </p>
-          </div>
-        </div>
+      <PageContainer className="flex flex-col gap-4 sm:gap-5">
+        <header className="flex flex-col gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tighter text-center text-sky-900">
+            Lançamentos
+          </h1>
+          <p className="text-sm sm:text-base lg:text-lg text-sky-800 text-center">
+            Gerenciar os lançamentos para o controle financeiro
+          </p>
+        </header>
+
+        {/* Painel de filtros */}
         <PainelFiltros />
-        <div className="items-center">
+
+        {/* Ações */}
+        <div className="flex items-center justify-end">
+          <Button
+            className="bg-sky-800 text-white hover:bg-sky-900"
+            onClick={() => setOpenNovo(true)}
+          >
+            + Lançamento
+          </Button>
+        </div>
+
+        {/* Tabela: rolagem horizontal apenas aqui */}
+        <div className="w-full overflow-x-auto">
           <TabelaLancamentos />
         </div>
-      </div>
+
+        {/* Modal do novo lançamento */}
+        <LancamentosForm open={openNovo} onOpenChange={setOpenNovo} />
+      </PageContainer>
     </LancamentoProvider>
   );
 }

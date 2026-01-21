@@ -1,51 +1,105 @@
 // src/app/(app)/_components/loginForm.tsx
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+
 import { CardTitle, CardHeader, CardContent, Card, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { useGlobalContext } from "../contextGlobal";
-import {useRouter} from 'next/navigation'
-import { useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+import { useGlobalContext } from "../contextGlobal";
 
 type Props = {
   defaultLogin?: string;
 };
 
-export default function LoginForm({ defaultLogin = "" }: Props)  {
+type FormValues = {
+  nickname: string;
+  password: string;
+};
+
+type LoginResponse = {
+  usuario?: {
+    id: number;
+    login: string;
+    nome: string;
+    perfil: string;
+    email?: string;
+  };
+  token: string;
+};
+
+type ErrorResponse = {
+  erro?: string;
+  error?: string;
+};
+
+function getApiBaseUrl(): string {
+  const v = process.env.NEXT_PUBLIC_BASEURL_API;
+  if (!v) throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env.local/.env");
+  return v.replace(/\/$/, "");
+}
+
+function setAuthCookie(token: string) {
+  const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+  const base = `token=${encodeURIComponent(token)}; path=/; max-age=86400; samesite=lax`;
+  document.cookie = isHttps ? `${base}; secure` : base;
+}
+
+export default function LoginForm({ defaultLogin = "" }: Props) {
   const router = useRouter();
-  const form = useForm();
+  const searchParams = useSearchParams();
+
+  const reason = searchParams.get("reason"); // ex: "sem-sessao"
+  const userFromUrl = (searchParams.get("user") ?? "").trim();
+
   const [login, setLogin] = useState(defaultLogin);
 
-  //Recuperar as funções do contexto
-  const { setEmailVerificacao, 
-          setCodigoVerificacao, 
-          setUsuarioId, 
-          setUsuarioLogin, 
-          setUsuarioNome, 
-          setUsuarioPerfil
-        } = useGlobalContext();
+  const form = useForm<FormValues>({
+    defaultValues: {
+      nickname: defaultLogin,
+      password: "",
+    },
+  });
+
+  const {
+    setEmailVerificacao,
+    setCodigoVerificacao,
+    setUsuarioId,
+    setUsuarioLogin,
+    setUsuarioNome,
+    setUsuarioPerfil,
+    setUsuarioEmail,
+    setUltimoAcessoISO,
+  } = useGlobalContext();
 
   useEffect(() => {
     if (defaultLogin) {
-      form.setValue("nickname", defaultLogin);
+      form.setValue("nickname", defaultLogin, { shouldValidate: false, shouldDirty: false });
       setLogin(defaultLogin);
     }
-  }, [defaultLogin]);
+  }, [defaultLogin, form]);
 
-
-  // //Constantes para Estilo tailwind dos controles do formulário
-  const clsLabel = "text-xl font-bold text-sky-900";
-  const clsInput = "text-xl h-10";
-
+  const sessionMessage = useMemo(() => {
+    if (reason === "sem-sessao") {
+      return "Sua sessão não é mais válida. Faça login novamente.";
+    }
+    return null;
+  }, [reason]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    const baseURL_API = process.env.NEXT_PUBLIC_BASEURL_API;
-    if (!baseURL_API) {
-      throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env.local");
+    const baseURL_API = getApiBaseUrl();
+
+    const nickname = (data.nickname ?? "").trim();
+    const password = (data.password ?? "").trim();
+
+    if (!nickname || !password) {
+      alert("Informe login e senha.");
+      return;
     }
 
     try {
@@ -53,113 +107,166 @@ export default function LoginForm({ defaultLogin = "" }: Props)  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          login: data.nickname.toUpperCase(), // Garantir caixa alta
-          senha: data.password,
+          login: nickname.toUpperCase(),
+          senha: password,
         }),
       });
-  
+
       if (!res.ok) {
-        const error = await res.json();
-        alert(error.erro || "Falha na autenticação!");
+        const errJson = (await res.json().catch(() => ({}))) as ErrorResponse;
+        alert(errJson.erro || errJson.error || "Falha na autenticação!");
         return;
       }
-  
-      const dados = await res.json();
-  
-       // Aqui só lidamos com os dados que vierem no corpo, sem mexer no token
-       if (dados.usuario?.id) {
+
+      const dados = (await res.json()) as LoginResponse;
+
+      if (dados.usuario?.id) {
         setUsuarioId(dados.usuario.id);
         setUsuarioLogin(dados.usuario.login);
         setUsuarioNome(dados.usuario.nome);
         setUsuarioPerfil(dados.usuario.perfil);
+
+        const email = typeof dados.usuario.email === "string" ? dados.usuario.email : "";
+        setUsuarioEmail(email);
+
+        const nowISO = new Date().toISOString();
+        setUltimoAcessoISO(nowISO);
+
+        // ✅ persistência pro menu sobreviver ao refresh
+        localStorage.setItem("jp_cashflow_user_email", email);
+        localStorage.setItem("jp_cashflow_last_access_iso", nowISO);
       }
 
-      // 🔐 Salvar token no cookie
-      document.cookie = `token=${dados.token}; path=/; max-age=86400`;
-      
+      setAuthCookie(dados.token);
+
       router.push("/dashboard");
-  
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("🚨 Erro na autenticação:", error);
       alert("Erro ao autenticar. Tente novamente.");
     }
-
   });
 
-  async function enviaCodigo(){
-    const identificador = form.getValues("nickname");
-
-    //verificar se foi digitado um logim ou email
-    if(!identificador){
-      alert("Por favor informar um login valido ou o email cadastrado!")
+  async function enviaCodigo() {
+    const identificador = (form.getValues("nickname") ?? "").trim();
+    if (!identificador) {
+      alert("Por favor informar um login válido ou o email cadastrado!");
       return;
     }
 
     try {
-      //const apiUrl = process.env.NEXT_PUBLIC_BASEURL_API || "http://localhost:3001"; // Ajuste a URL
-      const apiUrl = process.env.NEXT_PUBLIC_BASEURL_API;
-      if (!apiUrl) {
-        throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env.local");
-      }
-      
+      const apiUrl = getApiBaseUrl();
+
       const res = await fetch(`${apiUrl}/api/public/global/auth/redefinirSenha`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ loginOuEmail: identificador }),
       });
 
       if (!res.ok) {
-        const erro = await res.json();
-        alert(erro.erro || "Falha na solicitação.");
+        const erro = (await res.json().catch(() => ({}))) as ErrorResponse;
+        alert(erro.erro || erro.error || "Falha na solicitação.");
         return;
       }
-    
-    const data = await res.json();
-    
-    // Atualiza o estado global com os dados retornados
-    setEmailVerificacao(data.dados.email);
-    setCodigoVerificacao(data.dados.codigo);
-    setUsuarioId(data.dados.id);
 
-    router.push('/cadastros/usuarios/verificacao');
+      const data = (await res.json()) as {
+        dados: { email: string; codigo: string; id: number };
+      };
 
-  } catch (error) {
-    console.error("🚨 Erro ao enviar email:", error);
-    alert("Erro ao enviar email. Tente novamente.");
+      setEmailVerificacao(data.dados.email);
+      setCodigoVerificacao(data.dados.codigo);
+      setUsuarioId(data.dados.id);
+
+      router.push("/cadastros/usuarios/verificacao");
+    } catch (error: unknown) {
+      console.error("🚨 Erro ao enviar email:", error);
+      alert("Erro ao enviar email. Tente novamente.");
+    }
   }
 
-}
+  function irParaCadastro() {
+    const u = (userFromUrl || login || "").trim();
+    const qs = u ? `?user=${encodeURIComponent(u)}` : "";
+    router.push(`/cadastros/usuarios/cadastro${qs}`);
+  }
 
   return (
-    //<div className="flex items-center mt-[10%] justify-center w-screen">
-    <Card className="w-full max-w-md mx-auto mt-20">
-      <CardHeader className="text-center">
-        <CardTitle className="text-4xl font-bold text-sky-900">Login</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="nickname" className={clsLabel}>Login ou Email</Label>
-            <Input id="nickname" {...form.register("nickname")} className={clsInput} />
-          </div>
-          <div>
-            <Label htmlFor="password" className={clsLabel}>Senha</Label>
-            <Input id="password" type="password" {...form.register("password")} className={clsInput} />
-          </div>
-          <div className="flex justify-between">
-            <Button type="submit" className="text-xl">Entrar</Button>
-            <Button type="button" variant="link" onClick={enviaCodigo} className="text-sky-700">Esqueci a senha</Button>
-          </div>
-        </form>
-      </CardContent>
-      <CardFooter>
-        <p className="text-sm text-muted-foreground text-center w-full">
-          &copy; {new Date().getFullYear()} JPSystem
-        </p>
-      </CardFooter>
-    </Card>
-    //</div>
+    <div className="w-full px-4">
+      <Card className="w-full max-w-md mx-auto mt-10 sm:mt-16">
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-3xl sm:text-4xl font-bold text-sky-900">
+            Login
+          </CardTitle>
+          <p className="text-sm sm:text-base text-slate-600">
+            Acesse sua conta para continuar
+          </p>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {sessionMessage ? (
+            <Alert>
+              <AlertTitle className="text-sky-900">Atenção</AlertTitle>
+              <AlertDescription className="text-sky-900">
+                {sessionMessage}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="nickname" className="text-base sm:text-lg font-bold text-sky-900">
+                Login ou Email
+              </Label>
+              <Input
+                id="nickname"
+                className="h-11 sm:h-12 text-base sm:text-lg"
+                {...form.register("nickname", { required: true })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password" className="text-base sm:text-lg font-bold text-sky-900">
+                Senha
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                className="h-11 sm:h-12 text-base sm:text-lg"
+                {...form.register("password", { required: true })}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+              <Button type="submit" className="w-full sm:w-auto text-base sm:text-lg">
+                Entrar
+              </Button>
+
+              <Button
+                type="button"
+                variant="link"
+                onClick={enviaCodigo}
+                className="w-full sm:w-auto justify-center text-sky-700"
+              >
+                Esqueci a senha
+              </Button>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full text-base sm:text-lg border-sky-800 border-2 hover:bg-slate-100 text-sky-900"
+              onClick={irParaCadastro}
+            >
+              Criar cadastro
+            </Button>
+          </form>
+        </CardContent>
+
+        <CardFooter>
+          <p className="text-xs sm:text-sm text-muted-foreground text-center w-full">
+            &copy; {new Date().getFullYear()} JPSystem
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

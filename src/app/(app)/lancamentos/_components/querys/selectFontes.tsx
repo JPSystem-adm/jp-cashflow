@@ -1,90 +1,96 @@
+// src/app/(app)/lancamentos/_components/querys/selectFontes.tsx
 
-import { SelectFontes} from "@/app/(app)/actions/selectActions";
-import { useLancamentoContext } from "../contextLancamentoProvider"
-import { useGlobalContext } from "@/app/(app)/contextGlobal";
-import { tySelects } from "@/types/types";
-import { useQuery} from 'react-query';
-import { Select, SelectTrigger, SelectContent, SelectGroup, SelectItem, SelectValue } from "@/components/ui/select";
-import queryClient from "@/lib/reactQuery";
+"use client";
 
+import React, { useMemo } from "react";
+import { useQuery } from "react-query";
 
-interface Props {
-  pai: string;
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import { useLancamentoContext } from "../contextLancamentoProvider";
+import { listarFontesAtivas } from "@/app/(app)/actions/lancamentoAPI";
+
+type FonteOption = {
+  id: number;
+  nome: string;
+};
+
+function toFonteOptions(data: unknown): FonteOption[] {
+  if (!Array.isArray(data)) return [];
+  const out: FonteOption[] = [];
+  for (const it of data) {
+    if (!it || typeof it !== "object") continue;
+    const obj = it as Record<string, unknown>;
+    const id = obj.id;
+    const nome = obj.nome;
+
+    if (typeof id === "number" && Number.isFinite(id) && id > 0 && typeof nome === "string" && nome.trim()) {
+      out.push({ id, nome });
+    }
+  }
+  return out;
 }
 
-export default function ComboFontes ({pai}: Props) { 
-  const { fonteId, setFonteId, 
-          formFonteIdO, setFormFonteIdO,
-          formFonteIdD, setFormFonteIdD,
-        grupoId, subGrupoId} = useLancamentoContext();
+export default function ComboFontes({ pai }: { pai: "Filtro" | "FormO" | "FormD" }) {
+  const {
+    // filtro
+    fonteId,
+    setFonteId,
+    // form
+    formFonteIdO,
+    setFormFonteIdO,
+    formFonteIdD,
+    setFormFonteIdD,
+  } = useLancamentoContext();
 
-  const {usuarioId, periodoId} = useGlobalContext();
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["lancamentos", "fontes", "ativas"],
+    queryFn: async () => listarFontesAtivas(),
+    refetchOnWindowFocus: false,
+  });
 
-  //Tratamento para o pai do componente
-  let valorDefault: string = ""
-  if(pai === "Filtros"){
-    valorDefault = fonteId.toString();
-  }
-  if(pai === "FormO"){
-    valorDefault = formFonteIdO.toString();
-  }
-  if(pai === "FormD"){
-    if(formFonteIdD){
-      valorDefault = formFonteIdD.toString();
-    }else{
-      valorDefault = "0";
-    }
-  }
+  const options = useMemo(() => toFonteOptions(data), [data]);
 
-  //Carrega os Fontes
-  const { data, isLoading, refetch } = useQuery( ["listaFontes", usuarioId], async () => {
-    const response:tySelects[] = await SelectFontes(usuarioId);
-    return response;
-  })
+  const value =
+    pai === "FormO" ? formFonteIdO : pai === "FormD" ? (formFonteIdD ?? 0) : fonteId;
 
-  if(isLoading){
-    return(
-      <div>
-        Carregando...
-      </div>
-    )
-  }
+  const onChangeValue = (v: string) => {
+    const id = Number(v);
+    const safeId = Number.isFinite(id) && id > 0 ? id : 0;
 
-  const onChange = async (value: string) =>{
-    //Tratamento conforme Pai
-    if(pai === "Filtros"){
-      setFonteId(Number(value));
-      //Limpar o cache da consulta para atualizar os dados
-      queryClient.refetchQueries(["lancamentos", periodoId, grupoId, subGrupoId, fonteId]);  
-    }
-    if(pai === "FormO"){
-      setFormFonteIdO(Number(value));
-    }
-    if(pai === "FormD"){
-      //setFormFonteIdD(Number(value));
-      setFormFonteIdD( (value === "0") ? null : Number(value));
-    }
-    return true
-  }
+    if (pai === "FormO") setFormFonteIdO(safeId);
+    else if (pai === "FormD") setFormFonteIdD(safeId > 0 ? safeId : null);
+    else setFonteId(safeId);
+  };
 
-  return(
-    <div>
-      <Select defaultValue={valorDefault} onValueChange={onChange}>
-        <SelectTrigger className="w-full text-sky-800 border-2">
-          <SelectValue placeholder="Selecione a conta" />
+  return (
+    <div className="w-full">
+      {pai === "Filtro" ? <Label className="sr-only">Fonte</Label> : null}
+
+      <Select value={value > 0 ? String(value) : ""} onValueChange={onChangeValue}>
+        <SelectTrigger className="w-full bg-white">
+          <SelectValue
+            placeholder={
+              isLoading ? "Carregando..." : isError ? "Erro ao carregar" : "Selecione a Fonte"
+            }
+          />
         </SelectTrigger>
-        <SelectContent className="border-2 border-sky-900 p-0 m-0">
-          <SelectGroup className="bg-white text-sky-900">
-            <SelectItem className="bg-sky-100  text-sky-900"  key={0} value={"0"}>Todos...</SelectItem>
-            { data?.map((item, index)=>(
-              <SelectItem className="bg-sky-100  text-sky-900"  key={index} value={item.id?.toString()||""}>{item.nome}</SelectItem>
-            )
 
-            )}
-          </SelectGroup>
+        <SelectContent>
+          {options.length === 0 ? (
+            <SelectItem value="0" disabled>
+              Nenhuma fonte ativa encontrada
+            </SelectItem>
+          ) : (
+            options.map((f) => (
+              <SelectItem key={f.id} value={String(f.id)}>
+                {f.nome}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
     </div>
-  )
-
+  );
 }

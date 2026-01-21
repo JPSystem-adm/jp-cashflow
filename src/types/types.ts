@@ -1,3 +1,5 @@
+// src/types/types.ts
+
 export type tyUsuario = {
   key:           number,
   id:            number,
@@ -43,7 +45,7 @@ export type tySubGrupo = {
   id?:        number,
   nome:       string,
   descricao?: string,
-  ativo?:     boolean,
+  ativo:     boolean,
   grupoId?:   number,
   acao?:      string,
 }
@@ -74,11 +76,17 @@ export type tyErro = {
   } 
 }
 
+// export type tyResult = {
+//   status?:    string,
+//   menssagem?: string,
+//   dados?: {},
+// }
 export type tyResult = {
-  status?:    string,
-  menssagem?: string,
-  dados?: {},
+  status?: "Sucesso" | "Erro";
+  menssagem?: string;
+  dados?: Record<string, unknown>;
 }
+
 export type tyOrcamento = {
   orcamentoId?: number,
   valor?:       number,

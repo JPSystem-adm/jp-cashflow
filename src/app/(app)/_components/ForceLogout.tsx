@@ -1,36 +1,33 @@
-// src/app/app/_components/ForceLogout.tsx
+// src/app/(app)/_components/ForceLogout.tsx
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useGlobalContext } from "../contextGlobal";
 
-export default function ForceLogout({ user }: { user: string }) {
-  const router = useRouter();
-  const {
-    setUsuarioId,
-    setUsuarioLogin,
-    setUsuarioNome,
-    setUsuarioPerfil,
-    setEmailVerificacao,
-    setCodigoVerificacao,
-  } = useGlobalContext();
+type Props = { user: string };
+
+export default function ForceLogout({ user }: Props) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { logout } = useGlobalContext();
 
   useEffect(() => {
-    // 🧹 Limpa o cookie
-    document.cookie = "token=; Max-Age=0; path=/";
+    const currentUser = (searchParams.get("user") ?? "").toUpperCase();
+    const targetUser = user.toUpperCase();
 
-    // 🧹 Limpa o contexto global
-    setUsuarioId(0);
-    setUsuarioLogin("");
-    setUsuarioNome("");
-    setUsuarioPerfil("");
-    setEmailVerificacao("");
-    setCodigoVerificacao("");
+    const alreadyOnLoginWithSameUser =
+      pathname === "/login" && currentUser === targetUser;
 
-    // 🔁 Redireciona para login com o user na URL
-    router.replace(`/login?user=${user}`);
-  }, [user]);
+    if (alreadyOnLoginWithSameUser) {
+      // só garante que está deslogado sem ficar “re-redirecionando”
+      logout(`/login?user=${encodeURIComponent(user)}`);
+      return;
+    }
+
+    logout(`/login?user=${encodeURIComponent(user)}`);
+  }, [user, pathname, searchParams, logout]);
 
   return null;
 }

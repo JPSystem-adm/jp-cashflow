@@ -1,5 +1,4 @@
 // src/app/(app)/login/page.tsx
-
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -13,7 +12,7 @@ const ForceLogout = dynamic(() => import("../_components/ForceLogout"), {
 
 type SearchParams = {
   user?: string;
-  reason?: string; // ex: "sem-sessao"
+  reason?: string;
 };
 
 type MeResponse = {
@@ -43,57 +42,65 @@ async function fetchMeServer(token: string): Promise<MeResponse["usuario"] | nul
   return data.usuario ?? null;
 }
 
+function normalizeTenant(value: string | undefined): string | null {
+  const v = (value ?? "").trim().toLowerCase();
+  if (!v) return null;
+  if (!/^[a-z0-9-]+$/i.test(v)) return null;
+  return v;
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams?: SearchParams;
 }) {
-  const urlUser = searchParams?.user?.toUpperCase();
+  const urlUser = normalizeTenant(searchParams?.user);
   const reason = searchParams?.reason;
 
   const cookieStore = cookies();
   const token = cookieStore.get("token")?.value;
 
-  // ✅ Se veio reason pedindo limpeza (ex.: /inicio detectou sessão inválida)
-  // Força logout no client e mantém o user preenchido.
+  // tenant preferencial: query ?user, senão cookie setado pelo middleware
+  const cookieTenant = normalizeTenant(cookieStore.get("tenant")?.value);
+  const tenant = urlUser ?? cookieTenant;
+
+  const base = getBaseUrl();
+  const dashboardUrl = tenant ? `${base}/${tenant}/dashboard` : `${base}/dashboard`;
+  const loginUrlWithUser = tenant ? `${base}/${tenant}/login?user=${encodeURIComponent(tenant)}` : `${base}/login`;
+
   if (reason === "sem-sessao") {
-    return <ForceLogout user={urlUser || ""} />;
+    return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
   }
 
-  // Se tem token, NÃO confia só no decode.
   if (token) {
-    // decodeToken pode ser útil pra comparar login/subdomínio, mas não valida sessão.
     const decoded = decodeToken(token);
 
-    // Se nem decodifica, limpa cookie
     if (!decoded) {
-      return <ForceLogout user={urlUser || ""} />;
+      return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
     }
 
-    // ✅ Valida sessão real na API (usuário existe? token aceito?)
     const me = await fetchMeServer(token);
 
     if (!me) {
-      // Usuário apagado do banco / token expirado / secret diferente
-      return <ForceLogout user={urlUser || ""} />;
+      return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
     }
 
     const loggedUser = me.login.toUpperCase();
 
-    // 🔒 Se já está logado e tentou abrir /login sem ?user, manda pro dashboard
-    if (!urlUser) {
-      redirect(`${getBaseUrl()}/dashboard`);
+    // sem ?user e sem cookie tenant: manda pro dashboard “genérico”
+    if (!tenant) {
+      redirect(`${base}/dashboard`);
     }
 
-    // ✅ Se o usuário do token/API bate com o ?user, dashboard
-    if (loggedUser === urlUser) {
-      redirect(`${getBaseUrl()}/dashboard`);
+    // se o tenant existe e bate com o login, manda pro dashboard do tenant
+    if (tenant && loggedUser === tenant.toUpperCase()) {
+      redirect(dashboardUrl);
     }
 
-    // ⚠️ Tentou logar como outro usuário/tenant: força logout
-    return <ForceLogout user={urlUser || ""} />;
+    // tentou entrar com tenant diferente
+    return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
   }
 
-  // 🔓 Usuário não autenticado → exibe o formulário
-  return <LoginForm defaultLogin={urlUser || ""} />;
+  // não autenticado -> mostra form (o form vai empurrar para /{tenant}/dashboard)
+  return <LoginForm defaultLogin={(urlUser ?? "").toUpperCase()} />;
 }

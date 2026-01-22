@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -89,7 +89,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/file-saver": "^2.0.7",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^20",
+    "@types/node": "^20.19.30",
     "@types/nodemailer": "^6.4.16",
     "@types/react": "^18",
     "@types/react-dom": "^18.3.0",

@@ -1,70 +1,62 @@
 // src/app/(app)/inicio/page.tsx
-
 import { redirect } from "next/navigation";
-import { headers, cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getBaseUrl } from "@/lib/getBaseUrl";
 
-function getSubdomainFromHost(host: string): string | null {
-  if (!host) return null;
+type ValidaTenantResponse = { id?: string | number };
 
-  const hostname = host.split(":")[0];
-  const parts = hostname.split(".");
-  const isLocalhost = hostname.includes("localhost");
+function tenantFromPathname(pathname: string): string | null {
+  const seg = pathname.split("/").filter(Boolean)[0] ?? null;
+  if (!seg) return null;
 
-  // DEV: jp.localhost
-  if (isLocalhost && parts.length === 2) return parts[0];
+  // não aceitar rotas “reservadas” como tenant
+  const reserved = new Set([
+    "login",
+    "cadastro",
+    "unauthorized",
+    "about",
+    "inicio",
+    "dashboard",
+    "cadastros",
+    "lancamentos",
+    "agendamentos",
+  ]);
 
-  // PROD: jp.seudominio.com
-  if (!isLocalhost && parts.length >= 3) return parts[0];
+  if (reserved.has(seg)) return null;
+  if (!/^[a-z0-9-]+$/i.test(seg)) return null;
 
-  return null;
+  return seg.toLowerCase();
 }
 
-type ValidaSubdominioResponse = {
-  id?: string | number;
-};
-
-async function getUserIdBySubdomain(subdomain: string): Promise<string | null> {
-  console.log("🟡 Validando subdomínio:", subdomain);
-
+async function getUserIdByTenant(tenant: string): Promise<string | null> {
   try {
     const apiBase = process.env.NEXT_PUBLIC_BASEURL_API;
-    if (!apiBase) {
-      console.error("🚨 NEXT_PUBLIC_BASEURL_API não definido.");
-      return null;
-    }
+    if (!apiBase) return null;
 
     const urlAPI = `${apiBase}/api/public/global/autenticacao/validaSubdominio/`;
     const response = await fetch(urlAPI, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ login: subdomain }),
+      body: JSON.stringify({ login: tenant }),
       next: { revalidate: 60 },
     });
 
     if (!response.ok) return null;
 
-    const data = (await response.json()) as ValidaSubdominioResponse;
+    const data = (await response.json()) as ValidaTenantResponse;
     const id = data?.id;
 
     if (typeof id === "number") return String(id);
     if (typeof id === "string" && id.trim()) return id;
 
     return null;
-  } catch (err) {
-    console.error("🚨 Erro validando subdomínio:", err);
+  } catch {
     return null;
   }
 }
 
 type MeResponse = {
-  usuario?: {
-    id: number;
-    login: string;
-    nome: string;
-    perfil: string;
-    email?: string;
-  };
+  usuario?: { id: number; login: string; nome: string; perfil: string; email?: string };
 };
 
 async function validateSessionWithApi(token: string): Promise<MeResponse["usuario"] | null> {
@@ -85,56 +77,49 @@ async function validateSessionWithApi(token: string): Promise<MeResponse["usuari
 }
 
 export default async function Page() {
-  const headersList = headers();
-  const host = headersList.get("host") || "";
-  const subdomain = getSubdomainFromHost(host);
-
-  console.log("🚀 Subdomínio detectado na página Inicio:", subdomain);
-
-  if (!subdomain) {
-    console.log("🔐 Subdomínio ausente. Redirecionando para a raiz.");
-    return redirect(`${getBaseUrl()}/`);
-  }
-
-  const userId = await getUserIdBySubdomain(subdomain);
-
-  if (!userId) {
-    console.log("🔴 Subdomínio inválido. Redirecionando para público.");
-    return redirect(`${getBaseUrl()}/`);
-  }
-
-  const cookieStore = cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (token) {
-    const me = await validateSessionWithApi(token);
-
-    if (me) {
-      console.log("🧩 Sessão confirmada pela API:", {
-        id: me.id,
-        login: me.login,
-        perfil: me.perfil,
-      });
-
-      // Garante que a sessão é do mesmo login do subdomínio
-      if (me.login?.toUpperCase() === subdomain.toUpperCase()) {
-        console.log("🟢 Sessão válida e subdomínio correto. Indo para o dashboard...");
-        return redirect(`${getBaseUrl()}/dashboard`);
-      }
-
-      console.log("🔴 Sessão válida mas subdomínio diferente. Indo para login...");
-      return redirect(`${getBaseUrl()}/login?user=${subdomain}`);
+  const h = headers();
+  const pathname = h.get("x-pathname") ?? ""; // pode não existir
+  // fallback seguro: usar o referer se tiver (dev); se não tiver, cai em redirect abaixo
+  const referer = h.get("referer") ?? "";
+  const pathFromReferer = (() => {
+    try {
+      return referer ? new URL(referer).pathname : "";
+    } catch {
+      return "";
     }
+  })();
 
-    // Sessão inválida (token expirado/usuário apagado/etc.)
-    console.log("🟠 Token existe, mas sessão inválida na API. Limpando cookie e indo para cadastro...");
+  const tenant = tenantFromPathname(pathFromReferer || pathname);
 
-    // ⚠️ Em Server Component, não dá pra apagar cookie diretamente aqui sem response.
-    // Então apenas redirecionamos para uma rota que limpa cookie (recomendado),
-    // ou enviamos para /login e lá limpamos no client.
-    return redirect(`${getBaseUrl()}/login?user=${subdomain}&reason=sem-sessao`);
+  if (!tenant) {
+    return redirect(`${getBaseUrl()}/`);
   }
 
-  console.log("🔒 Usuário não logado. Redirecionando para login...");
-  return redirect(`${getBaseUrl()}/login?user=${subdomain}`);
+  // valida tenant na API (reusa endpoint atual)
+  const userId = await getUserIdByTenant(tenant);
+  if (!userId) {
+    return redirect(`${getBaseUrl()}/`);
+  }
+
+  const token = cookies().get("token")?.value;
+
+  // não logado => manda pro login DO TENANT (URL pública)
+  if (!token) {
+    return redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}`);
+  }
+
+  const me = await validateSessionWithApi(token);
+
+  // token inválido => manda pro login DO TENANT
+  if (!me) {
+    return redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}&reason=sem-sessao`);
+  }
+
+  // login do token precisa bater com tenant
+  if (me.login?.toUpperCase() !== tenant.toUpperCase()) {
+    return redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}&reason=tenant-diferente`);
+  }
+
+  // ✅ sempre com tenant no path (URL pública)
+  return redirect(`${getBaseUrl()}/${tenant}/dashboard`);
 }

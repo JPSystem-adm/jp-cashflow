@@ -1,0 +1,69 @@
+
+NEXT_LOG_LEVEL=error
+
+NEXTAUTH_SECRET=Ov942sNI3s2selzrG8cfFss3819yz0c4omoID77xNe4=
+
+
+
+#============================
+# Banco MySql LOCAL
+#============================
+# DB_PORT=3306
+# DB_HOST=localhost
+# DB_USER=root
+# DB_PASS=JPadmin@1
+# DB_NAME=scmd3
+#DATABASE_URL='mysql://root:JPadmin%401@localhost:3306/cashflow'
+
+#============================
+# Banco MySql AWS RDS BANCO scmd30
+#============================
+# DB_PORT=3306
+# DB_HOST=mysqlaws.c1ua8smq45z0.sa-east-1.rds.amazonaws.com
+# DB_USER=cashFlow
+# DB_PASS=Sistema@jp-cashflow
+# DB_NAME=cashflow
+# DATABASE_URL='mysql://scmd3:Sistema%40scmd3@mysqlaws.c1ua8smq45z0.sa-east-1.rds.amazonaws.com:3306/scmd3'
+
+
+####### Banco de dados MySql
+#DATABASE_URL="mysql://admin:mySql%23174@mysqlaws.c1ua8smq45z0.sa-east-1.rds.amazonaws.com:3306/cashFlow"
+#"mysql://admin:mySql%2301@mysqlaws.c1ua8smq45z0.sa-east-1.rds.amazonaws.com:3306/cashFlow"
+####### Usuário da aplicação
+#DATABASE_URL='mysql://cashflow:Sistema%40jp-cashflow@mysqlaws.c1ua8smq45z0.sa-east-1.rds.amazonaws.com:3306/cashFlow'
+# DATABASE_URL='mysql://admin:mySql%23174@mysqlaws.c1ua8smq45z0.sa-east-1.rds.amazonaws.com:3306/cashFlow'
+
+
+# conexão com o usuario root na Railway
+# DATABASE_URL=mysql://root:MjVESlrCmzBlvCvwdZHYmbymROguvLMf@maglev.proxy.rlwy.net:31814/cashFlow
+
+#============================
+# CONFIGURAÇÃO DAS VARIAVEIS DE AMBIENTE LOCAL
+#============================
+# BASEURL=http://localhost:3000
+# NEXTAUTH_URL=http://localhost:3000
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+
+
+
+#============================
+# CONFIGURAÇÃO DAS VARIAVEIS DE AMBIENTE NA VERCEL
+#============================
+# BASEURL=https://jp-cashflow.vercel.app
+# NEXTAUTH_URL=https://jp-cashflow.vercel.app
+# NEXT_PUBLIC_APP_URL=https://jp-cashflow.vercel.app
+
+NEXT_PUBLIC_BASEURL_API=https://api-cashflow.vercel.app
+# NEXT_PUBLIC_BASEURL_API=http://localhost:3001
+#============================
+#DADOS PARA EMAIL
+#============================
+EMAIL=jpsystem@gmail.com
+EMAIL_PASS=scdg wdow nmwq letn
+
+#Chave para JWT (Para compatibilidade com a api-cashflow)
+JWT_SECRET=6d06a81ab333ebbaf8cca526da9ab582554c5e00869af477a9b20ef8388f1566
+
+#NODE_ENV=development
+

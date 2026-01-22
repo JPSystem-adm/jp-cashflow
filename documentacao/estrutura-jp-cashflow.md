@@ -21,14 +21,20 @@
     |   |   |       enviaEmail.ts
     |   |   |       excel.ts
     |   |   |       fonteActions.ts
+    |   |   |       fonteAPI.ts
     |   |   |       graficosActions.ts
     |   |   |       grupoActions.ts
     |   |   |       grupoAPI.ts
     |   |   |       lancamentoActions.ts
+    |   |   |       lancamentoAPI.ts
     |   |   |       orcamentoActions.ts
+    |   |   |       orcamentoAPI.ts
+    |   |   |       periodoAPI.ts
     |   |   |       redirecionamentos.ts
+    |   |   |       saldoAPI.ts
     |   |   |       saldosActions.ts
     |   |   |       selectActions.ts
+    |   |   |       subGrupoAPI.ts
     |   |   |       usarioActions.ts
     |   |   |       
     |   |   +---agendamentos
@@ -70,6 +76,7 @@
     |   |   |   |           tabelaOrcamento.tsx
     |   |   |   |           
     |   |   |   +---saldos
+    |   |   |   |   |   layout.tsx
     |   |   |   |   |   page.tsx
     |   |   |   |   |   
     |   |   |   |   \---_components
@@ -124,9 +131,6 @@
     |   |   +---login
     |   |   |       page.tsx
     |   |   |       
-    |   |   +---paginaRestrita
-    |   |   |       page.tsx
-    |   |   |       
     |   |   +---rodape
     |   |   |       rodape.tsx
     |   |   |       
@@ -142,32 +146,16 @@
     |   |           iconsMenu.tsx
     |   |           loginForm.tsx
     |   |           logoutButton.tsx
+    |   |           PageContainer.tsx
     |   |           UserCircleIcon.tsx
+    |   |           UserMenu.tsx
     |   |           warningBox.tsx
     |   |           
-    |   +---(public)
-    |   |       layout.tsx
-    |   |       page.tsx
-    |   |       
-    |   \---api
-    |       +---login
-    |       |       route.ts
-    |       |       
-    |       +---logout
-    |       |       route.ts
-    |       |       
-    |       +---sendEmail
-    |       |       route.ts
-    |       |       
-    |       +---serverRedirect
-    |       |       route.ts
-    |       |       
-    |       \---user
-    |           |   route.ts
-    |           |   
-    |           \---admin
-    |                   route.ts
-    |                   
+    |   \---(public)
+    |       |   layout.tsx
+    |       |   page.tsx
+    |       |   
+    |               
     +---components
     |   +---providers
     |   |       auth-provider.tsx
@@ -231,9 +219,6 @@
     |                   modal.tsx
     |                   
     +---lib
-    |       auth-client.ts
-    |       auth-config.ts
-    |       auth.ts
     |       db.ts
     |       decodeToken.ts
     |       estilosExcelJs.ts
@@ -242,11 +227,10 @@
     |       getBaseUrl.ts
     |       getToken.ts
     |       jpFuncoes.ts
-    |       jwt.ts
     |       queryProvider.ts
     |       reactQuery.ts
-    |       redirecionarPagina.ts
-    |       retSecaoUserID.ts
+    |       session.ts
+    |       subdomain.ts
     |       utils.ts
     |       
     +---middleware
@@ -256,4 +240,4 @@
             environment.d.ts
             next-auth.d.ts
             types.ts
-```
+            

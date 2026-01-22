@@ -5,7 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { CardTitle, CardHeader, CardContent, Card, CardFooter } from "@/components/ui/card";
+import {
+  CardTitle,
+  CardHeader,
+  CardContent,
+  Card,
+  CardFooter,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,9 +51,45 @@ function getApiBaseUrl(): string {
 }
 
 function setAuthCookie(token: string) {
-  const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+  const isHttps =
+    typeof window !== "undefined" && window.location.protocol === "https:";
   const base = `token=${encodeURIComponent(token)}; path=/; max-age=86400; samesite=lax`;
   document.cookie = isHttps ? `${base}; secure` : base;
+}
+
+function toTenantSlug(input: string): string | null {
+  const s = input.trim().toLowerCase();
+  if (!s) return null;
+
+  // remove acentos
+  const noAccents = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // espaços/underscore -> hífen
+  const dashed = noAccents.replace(/[\s_]+/g, "-");
+  // só a-z0-9-
+  const cleaned = dashed
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!cleaned) return null;
+  if (!/^[a-z0-9-]+$/i.test(cleaned)) return null;
+
+  // evitar reserved words virarem tenant
+  const reserved = new Set([
+    "login",
+    "cadastro",
+    "unauthorized",
+    "about",
+    "inicio",
+    "dashboard",
+    "cadastros",
+    "lancamentos",
+    "agendamentos",
+  ]);
+
+  if (reserved.has(cleaned)) return null;
+
+  return cleaned;
 }
 
 export default function LoginForm({ defaultLogin = "" }: Props) {
@@ -79,7 +121,10 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
 
   useEffect(() => {
     if (defaultLogin) {
-      form.setValue("nickname", defaultLogin, { shouldValidate: false, shouldDirty: false });
+      form.setValue("nickname", defaultLogin, {
+        shouldValidate: false,
+        shouldDirty: false,
+      });
       setLogin(defaultLogin);
     }
   }, [defaultLogin, form]);
@@ -103,14 +148,17 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
     }
 
     try {
-      const res = await fetch(`${baseURL_API}/api/public/global/autenticacao/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          login: nickname.toUpperCase(),
-          senha: password,
-        }),
-      });
+      const res = await fetch(
+        `${baseURL_API}/api/public/global/autenticacao/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            login: nickname.toUpperCase(),
+            senha: password,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const errJson = (await res.json().catch(() => ({}))) as ErrorResponse;
@@ -132,14 +180,26 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
         const nowISO = new Date().toISOString();
         setUltimoAcessoISO(nowISO);
 
-        // ✅ persistência pro menu sobreviver ao refresh
         localStorage.setItem("jp_cashflow_user_email", email);
         localStorage.setItem("jp_cashflow_last_access_iso", nowISO);
       }
 
       setAuthCookie(dados.token);
 
-      router.push("/dashboard");
+      // ✅ Tenant por PATH:
+      // prioridade: ?user=... (tenant escolhido)
+      // fallback: nickname digitado
+      const tenantFromUrl = toTenantSlug(userFromUrl);
+      const tenantFromNickname = toTenantSlug(nickname);
+      const tenant = tenantFromUrl ?? tenantFromNickname;
+
+      if (!tenant) {
+        // fallback (evita travar)
+        router.push("/dashboard");
+        return;
+      }
+
+      router.push(`/${tenant}/dashboard`);
     } catch (error: unknown) {
       console.error("🚨 Erro na autenticação:", error);
       alert("Erro ao autenticar. Tente novamente.");
@@ -176,7 +236,12 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
       setCodigoVerificacao(data.dados.codigo);
       setUsuarioId(data.dados.id);
 
-      router.push("/cadastros/usuarios/verificacao");
+      const tenant = toTenantSlug(userFromUrl) ?? toTenantSlug(identificador);
+      const target = tenant
+        ? `/${tenant}/cadastros/usuarios/verificacao`
+        : "/cadastros/usuarios/verificacao";
+
+      router.push(target);
     } catch (error: unknown) {
       console.error("🚨 Erro ao enviar email:", error);
       alert("Erro ao enviar email. Tente novamente.");
@@ -184,9 +249,15 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
   }
 
   function irParaCadastro() {
-    const u = (userFromUrl || login || "").trim();
-    const qs = u ? `?user=${encodeURIComponent(u)}` : "";
-    router.push(`/cadastros/usuarios/cadastro${qs}`);
+    const uRaw = (userFromUrl || login || "").trim();
+    const tenant = toTenantSlug(uRaw);
+    const qs = uRaw ? `?user=${encodeURIComponent(uRaw)}` : "";
+
+    const target = tenant
+      ? `/${tenant}/cadastros/usuarios/cadastro${qs}`
+      : `/cadastros/usuarios/cadastro${qs}`;
+
+    router.push(target);
   }
 
   return (
@@ -213,7 +284,10 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="nickname" className="text-base sm:text-lg font-bold text-sky-900">
+              <Label
+                htmlFor="nickname"
+                className="text-base sm:text-lg font-bold text-sky-900"
+              >
                 Login ou Email
               </Label>
               <Input
@@ -224,7 +298,10 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-base sm:text-lg font-bold text-sky-900">
+              <Label
+                htmlFor="password"
+                className="text-base sm:text-lg font-bold text-sky-900"
+              >
                 Senha
               </Label>
               <Input

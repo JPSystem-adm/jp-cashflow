@@ -3,6 +3,22 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_ROUTES = ["/", "/login", "/cadastro", "/unauthorized"];
 
+// rotas que NÃO podem ser tenant
+const RESERVED_FIRST_SEGMENTS = new Set<string>([
+  // públicas
+  "login",
+  "cadastro",
+  "unauthorized",
+  "about",
+
+  // app (sem tenant)
+  "inicio",
+  "dashboard",
+  "cadastros",
+  "lancamentos",
+  "agendamentos",
+]);
+
 function isAsset(pathname: string): boolean {
   return (
     pathname.startsWith("/_next") ||
@@ -12,29 +28,35 @@ function isAsset(pathname: string): boolean {
   );
 }
 
+function isValidTenant(value: string): boolean {
+  return /^[a-z0-9-]+$/i.test(value);
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (isAsset(pathname)) {
-    return NextResponse.next();
-  }
+  if (isAsset(pathname)) return NextResponse.next();
 
   const segments = pathname.split("/").filter(Boolean);
 
-  // 🔹 Caso 1: sem tenant (rota pública)
-  if (segments.length === 0 || PUBLIC_ROUTES.includes(`/${segments[0]}`)) {
-    return NextResponse.next();
-  }
+  // 🔹 Sem segmento => /
+  if (segments.length === 0) return NextResponse.next();
 
-  const tenant = segments[0];
+  const first = segments[0];
+
+  // 🔹 Rotas públicas sem tenant
+  if (PUBLIC_ROUTES.includes(`/${first}`)) return NextResponse.next();
+
+  // ✅ Se começar com rota reservada, NÃO é tenant
+  if (RESERVED_FIRST_SEGMENTS.has(first)) return NextResponse.next();
+
+  // 🔹 Tenant é o primeiro segmento
+  const tenant = first;
+
+  if (!isValidTenant(tenant)) return NextResponse.next();
+
   const restPath = `/${segments.slice(1).join("/")}`;
 
-  // 🔹 Validação simples do nome do tenant
-  if (!/^[a-z0-9-]+$/i.test(tenant)) {
-    return NextResponse.next();
-  }
-
-  // 🔹 Mapeamento de rotas válidas do APP
   const isAppRoute =
     restPath === "/" ||
     restPath === "" ||
@@ -42,23 +64,19 @@ export function middleware(req: NextRequest) {
     restPath.startsWith("/dashboard") ||
     restPath.startsWith("/cadastros") ||
     restPath.startsWith("/lancamentos") ||
-    restPath.startsWith("/agendamentos");
+    restPath.startsWith("/agendamentos") ||
+    restPath.startsWith("/login") ||        // ✅ add
+    restPath.startsWith("/cadastro");       // ✅ se existir no app  
 
-  if (!isAppRoute) {
-    return NextResponse.next();
-  }
+  if (!isAppRoute) return NextResponse.next();
 
   const url = req.nextUrl.clone();
 
-  // /tenant → /inicio
-  url.pathname = restPath === "/" || restPath === ""
-    ? "/inicio"
-    : restPath;
+  url.pathname = restPath === "/" || restPath === "" ? "/inicio" : restPath;
 
   const res = NextResponse.rewrite(url);
 
-  // 🔐 Salva o tenant
-  res.cookies.set("tenant", tenant, {
+  res.cookies.set("tenant", tenant.toLowerCase(), {
     path: "/",
     httpOnly: true,
     sameSite: "lax",

@@ -4,16 +4,22 @@ import { NextResponse, type NextRequest } from "next/server";
 export const runtime = "nodejs";
 
 function getSubdomain(host: string): string | null {
-  const hostname = host.split(":")[0]; // remove porta
-  const isLocalhost = hostname.endsWith("localhost");
+  const hostname = host.split(":")[0].toLowerCase();
   const parts = hostname.split(".");
 
-  // dev: jpsystem.localhost
-  if (isLocalhost && parts.length === 2) return parts[0];
+  // dev: usuario.localhost
+  if (hostname.endsWith("localhost")) {
+    return parts.length === 2 ? parts[0] : null;
+  }
 
-  // prod: usuario.jp-cashflow.app
-  if (!isLocalhost && parts.length >= 3) return parts[0];
+  // produção na vercel:
+  // base: jp-cashflow.vercel.app (3 partes) => sem subdomínio
+  // tenant: usuario.jp-cashflow.vercel.app (4 partes) => subdomínio
+  if (hostname.endsWith("vercel.app")) {
+    return parts.length >= 4 ? parts[0] : null;
+  }
 
+  // qualquer outro host: não assume subdomínio
   return null;
 }
 
@@ -39,19 +45,27 @@ function isAppPath(pathname: string): boolean {
 }
 
 function buildHostForUser(user: string, host: string): string {
-  const hostname = host.split(":")[0];
+  const hostname = host.split(":")[0].toLowerCase();
   const port = host.includes(":") ? host.split(":")[1] : "";
 
-  // dev: usuario.localhost:3000
+  // dev
   if (hostname.endsWith("localhost")) {
     return `${user}.localhost${port ? `:${port}` : ""}`;
   }
 
-  // prod: usuario.jp-cashflow.app (mantém domínio base)
-  const parts = hostname.split(".");
-  // remove subdomínio atual (primeira parte) e mantém o restante como base
-  const baseDomain = parts.length >= 2 ? parts.slice(1).join(".") : hostname;
-  return `${user}.${baseDomain}`;
+  // produção (vercel.app)
+  if (hostname.endsWith("vercel.app")) {
+    // se já estiver em usuario.jp-cashflow.vercel.app, mantém base jp-cashflow.vercel.app
+    // se estiver em jp-cashflow.vercel.app, idem
+    const base = hostname.endsWith("jp-cashflow.vercel.app")
+      ? "jp-cashflow.vercel.app"
+      : hostname.split(".").slice(-3).join("."); // fallback: pega "vercel.app" + algo? (seguro)
+
+    // melhor: forçar explicitamente o base do seu projeto:
+    return `${user}.jp-cashflow.vercel.app${port ? `:${port}` : ""}`;
+  }
+
+  return hostname;
 }
 
 export function middleware(req: NextRequest) {

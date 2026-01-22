@@ -1,135 +1,72 @@
 // src/middleware.ts
 import { NextResponse, type NextRequest } from "next/server";
 
-export const runtime = "nodejs";
+const PUBLIC_ROUTES = ["/", "/login", "/cadastro", "/unauthorized"];
 
-function getSubdomain(host: string): string | null {
-  const hostname = host.split(":")[0].toLowerCase();
-  const parts = hostname.split(".");
-
-  // dev: usuario.localhost
-  if (hostname.endsWith("localhost")) {
-    return parts.length === 2 ? parts[0] : null;
-  }
-
-  // produção na vercel:
-  // base: jp-cashflow.vercel.app (3 partes) => sem subdomínio
-  // tenant: usuario.jp-cashflow.vercel.app (4 partes) => subdomínio
-  if (hostname.endsWith("vercel.app")) {
-    return parts.length >= 4 ? parts[0] : null;
-  }
-
-  // qualquer outro host: não assume subdomínio
-  return null;
-}
-
-function isAssetOrNext(pathname: string): boolean {
+function isAsset(pathname: string): boolean {
   return (
-    pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
     pathname === "/favicon.ico" ||
-    pathname === "/robots.txt" ||
-    pathname === "/sitemap.xml" ||
-    /\.[a-zA-Z0-9]+$/.test(pathname) // arquivos com extensão
+    /\.[a-zA-Z0-9]+$/.test(pathname)
   );
-}
-
-// Defina aqui quais rotas são “do app”
-function isAppPath(pathname: string): boolean {
-  return (
-    pathname === "/inicio" ||
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/cadastros") ||
-    pathname.startsWith("/lancamentos")
-  );
-}
-
-function buildHostForUser(user: string, host: string): string {
-  const hostname = host.split(":")[0].toLowerCase();
-  const port = host.includes(":") ? host.split(":")[1] : "";
-
-  // dev
-  if (hostname.endsWith("localhost")) {
-    return `${user}.localhost${port ? `:${port}` : ""}`;
-  }
-
-  // produção (vercel.app)
-  if (hostname.endsWith("vercel.app")) {
-    // se já estiver em usuario.jp-cashflow.vercel.app, mantém base jp-cashflow.vercel.app
-    // se estiver em jp-cashflow.vercel.app, idem
-    const base = hostname.endsWith("jp-cashflow.vercel.app")
-      ? "jp-cashflow.vercel.app"
-      : hostname.split(".").slice(-3).join("."); // fallback: pega "vercel.app" + algo? (seguro)
-
-    // melhor: forçar explicitamente o base do seu projeto:
-    return `${user}.jp-cashflow.vercel.app${port ? `:${port}` : ""}`;
-  }
-
-  return hostname;
 }
 
 export function middleware(req: NextRequest) {
-  const { pathname, searchParams } = req.nextUrl;
+  const { pathname } = req.nextUrl;
 
-  if (isAssetOrNext(pathname)) return NextResponse.next();
-
-  const host = req.headers.get("host") ?? "";
-  const subdomain = getSubdomain(host);
-
-  const token = req.cookies.get("token")?.value;
-
-  // ============================
-  // 1) Sem subdomínio = público
-  // ============================
-
-  // Se tentar acessar rota do APP sem subdomínio → manda pro público
-  if (!subdomain && isAppPath(pathname)) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
-  // Se estiver em /login sem subdomínio mas com ?user= → joga pro subdomínio
-  if (!subdomain && pathname === "/login") {
-    const user = (searchParams.get("user") ?? "").trim().toLowerCase();
-    if (user) {
-      const url = req.nextUrl.clone();
-      url.host = buildHostForUser(user, host);
-      url.pathname = "/login";
-      // mantém query (?user=...)
-      return NextResponse.redirect(url);
-    }
-  }
-
-  // ============================
-  // 2) Com subdomínio = APP
-  // ============================
-
-  if (subdomain && subdomain !== "www") {
-    // Raiz do subdomínio sempre vira /inicio
-    if (pathname === "/") {
-      const url = req.nextUrl.clone();
-      url.pathname = "/inicio";
-      return NextResponse.redirect(url);
-    }
-
-    // Bloqueia /login com token
-    if (pathname === "/login" && token) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
-    }
-
-    // Se quiser, você pode também impedir qualquer rota pública no subdomínio.
-    // (Opcional — depende do seu projeto)
+  if (isAsset(pathname)) {
     return NextResponse.next();
   }
 
-  // Sem subdomínio e rota pública → ok
-  return NextResponse.next();
+  const segments = pathname.split("/").filter(Boolean);
+
+  // 🔹 Caso 1: sem tenant (rota pública)
+  if (segments.length === 0 || PUBLIC_ROUTES.includes(`/${segments[0]}`)) {
+    return NextResponse.next();
+  }
+
+  const tenant = segments[0];
+  const restPath = `/${segments.slice(1).join("/")}`;
+
+  // 🔹 Validação simples do nome do tenant
+  if (!/^[a-z0-9-]+$/i.test(tenant)) {
+    return NextResponse.next();
+  }
+
+  // 🔹 Mapeamento de rotas válidas do APP
+  const isAppRoute =
+    restPath === "/" ||
+    restPath === "" ||
+    restPath.startsWith("/inicio") ||
+    restPath.startsWith("/dashboard") ||
+    restPath.startsWith("/cadastros") ||
+    restPath.startsWith("/lancamentos") ||
+    restPath.startsWith("/agendamentos");
+
+  if (!isAppRoute) {
+    return NextResponse.next();
+  }
+
+  const url = req.nextUrl.clone();
+
+  // /tenant → /inicio
+  url.pathname = restPath === "/" || restPath === ""
+    ? "/inicio"
+    : restPath;
+
+  const res = NextResponse.rewrite(url);
+
+  // 🔐 Salva o tenant
+  res.cookies.set("tenant", tenant, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+  });
+
+  return res;
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!_next|api|favicon.ico).*)"],
 };

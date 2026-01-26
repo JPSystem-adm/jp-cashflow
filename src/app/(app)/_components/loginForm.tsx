@@ -1,4 +1,5 @@
 // src/app/(app)/_components/loginForm.tsx
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -21,6 +22,7 @@ import { useGlobalContext } from "../contextGlobal";
 
 type Props = {
   defaultLogin?: string;
+  tenant: string; // ✅ obrigatório no caminho A
 };
 
 type FormValues = {
@@ -42,62 +44,56 @@ type LoginResponse = {
 type ErrorResponse = {
   erro?: string;
   error?: string;
+  message?: string;
 };
 
 function getApiBaseUrl(): string {
   const v = process.env.NEXT_PUBLIC_BASEURL_API;
-  if (!v) throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env.local/.env");
+  if (!v) throw new Error("NEXT_PUBLIC_BASEURL_API não definida no .env");
   return v.replace(/\/$/, "");
 }
 
 function setAuthCookie(token: string) {
   const isHttps =
     typeof window !== "undefined" && window.location.protocol === "https:";
-  const base = `token=${encodeURIComponent(token)}; path=/; max-age=86400; samesite=lax`;
+  const base = `token=${encodeURIComponent(
+    token
+  )}; path=/; max-age=86400; samesite=lax`;
   document.cookie = isHttps ? `${base}; secure` : base;
 }
 
-function toTenantSlug(input: string): string | null {
-  const s = input.trim().toLowerCase();
-  if (!s) return null;
-
-  // remove acentos
-  const noAccents = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  // espaços/underscore -> hífen
-  const dashed = noAccents.replace(/[\s_]+/g, "-");
-  // só a-z0-9-
-  const cleaned = dashed
+function normalizeTenant(input: string): string {
+  return (input ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s_]+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
-
-  if (!cleaned) return null;
-  if (!/^[a-z0-9-]+$/i.test(cleaned)) return null;
-
-  // evitar reserved words virarem tenant
-  const reserved = new Set([
-    "login",
-    "cadastro",
-    "unauthorized",
-    "about",
-    "inicio",
-    "dashboard",
-    "cadastros",
-    "lancamentos",
-    "agendamentos",
-  ]);
-
-  if (reserved.has(cleaned)) return null;
-
-  return cleaned;
 }
 
-export default function LoginForm({ defaultLogin = "" }: Props) {
+function safePath(path: string): string {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  // impede // e remove trailing desnecessário (exceto raiz)
+  const collapsed = p.replace(/\/{2,}/g, "/");
+  return collapsed.length > 1 ? collapsed.replace(/\/+$/g, "") : collapsed;
+}
+
+export default function LoginForm({ defaultLogin = "", tenant }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const reason = searchParams.get("reason"); // ex: "sem-sessao"
   const userFromUrl = (searchParams.get("user") ?? "").trim();
+
+  // ✅ tenant fonte: prop (server) > url (fallback)
+  const tenantFinal = useMemo(() => {
+    const tProp = normalizeTenant(tenant);
+    const tUrl = normalizeTenant(userFromUrl);
+    return tProp || tUrl; // tProp deve existir no caminho A
+  }, [tenant, userFromUrl]);
 
   const [login, setLogin] = useState(defaultLogin);
 
@@ -133,8 +129,25 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
     if (reason === "sem-sessao") {
       return "Sua sessão não é mais válida. Faça login novamente.";
     }
+    if (reason === "tenant-diferente") {
+      return "Você tentou acessar um usuário diferente do que está logado. Faça login novamente.";
+    }
     return null;
   }, [reason]);
+
+  const go = (path: string) => {
+    const p = safePath(path);
+
+    // Se alguém passar /{tenant}/algo por engano, evita duplicar.
+    const alreadyPrefixed =
+      tenantFinal && p.toLowerCase().startsWith(`/${tenantFinal.toLowerCase()}/`);
+
+    const target = tenantFinal
+      ? (alreadyPrefixed ? p : `/${tenantFinal}${p}`)
+      : p;
+
+    router.push(target);
+  };
 
   const handleSubmit = form.handleSubmit(async (data) => {
     const baseURL_API = getApiBaseUrl();
@@ -162,7 +175,12 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
 
       if (!res.ok) {
         const errJson = (await res.json().catch(() => ({}))) as ErrorResponse;
-        alert(errJson.erro || errJson.error || "Falha na autenticação!");
+        alert(
+          errJson.erro ||
+            errJson.error ||
+            errJson.message ||
+            "Falha na autenticação!"
+        );
         return;
       }
 
@@ -174,7 +192,8 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
         setUsuarioNome(dados.usuario.nome);
         setUsuarioPerfil(dados.usuario.perfil);
 
-        const email = typeof dados.usuario.email === "string" ? dados.usuario.email : "";
+        const email =
+          typeof dados.usuario.email === "string" ? dados.usuario.email : "";
         setUsuarioEmail(email);
 
         const nowISO = new Date().toISOString();
@@ -186,20 +205,10 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
 
       setAuthCookie(dados.token);
 
-      // ✅ Tenant por PATH:
-      // prioridade: ?user=... (tenant escolhido)
-      // fallback: nickname digitado
-      const tenantFromUrl = toTenantSlug(userFromUrl);
-      const tenantFromNickname = toTenantSlug(nickname);
-      const tenant = tenantFromUrl ?? tenantFromNickname;
-
-      if (!tenant) {
-        // fallback (evita travar)
-        router.push("/dashboard");
-        return;
-      }
-
-      router.push(`/${tenant}/dashboard`);
+      // hard navigation garante cookie no request do Server Component
+      const target = tenantFinal ? `/${tenantFinal}/dashboard` : "/dashboard";
+      window.location.assign(target);
+      return;
     } catch (error: unknown) {
       console.error("🚨 Erro na autenticação:", error);
       alert("Erro ao autenticar. Tente novamente.");
@@ -224,7 +233,7 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
 
       if (!res.ok) {
         const erro = (await res.json().catch(() => ({}))) as ErrorResponse;
-        alert(erro.erro || erro.error || "Falha na solicitação.");
+        alert(erro.erro || erro.error || erro.message || "Falha na solicitação.");
         return;
       }
 
@@ -236,12 +245,7 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
       setCodigoVerificacao(data.dados.codigo);
       setUsuarioId(data.dados.id);
 
-      const tenant = toTenantSlug(userFromUrl) ?? toTenantSlug(identificador);
-      const target = tenant
-        ? `/${tenant}/cadastros/usuarios/verificacao`
-        : "/cadastros/usuarios/verificacao";
-
-      router.push(target);
+      go("/cadastros/usuarios/verificacao");
     } catch (error: unknown) {
       console.error("🚨 Erro ao enviar email:", error);
       alert("Erro ao enviar email. Tente novamente.");
@@ -249,15 +253,9 @@ export default function LoginForm({ defaultLogin = "" }: Props) {
   }
 
   function irParaCadastro() {
-    const uRaw = (userFromUrl || login || "").trim();
-    const tenant = toTenantSlug(uRaw);
-    const qs = uRaw ? `?user=${encodeURIComponent(uRaw)}` : "";
-
-    const target = tenant
-      ? `/${tenant}/cadastros/usuarios/cadastro${qs}`
-      : `/cadastros/usuarios/cadastro${qs}`;
-
-    router.push(target);
+    // ✅ mantém o user no query para preencher campos no cadastro, se você usar isso lá
+    const u = tenantFinal ? `?user=${encodeURIComponent(tenantFinal)}` : "";
+    go(`/cadastros/usuarios/cadastro${u}`);
   }
 
   return (

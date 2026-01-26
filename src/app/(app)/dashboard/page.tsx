@@ -1,25 +1,30 @@
 // src/app/(app)/dashboard/page.tsx
 import { cookies } from "next/headers";
-import { decodeToken } from "@/lib/decodeToken";
-import { getBaseUrl } from "@/lib/getBaseUrl";
 import { redirect } from "next/navigation";
 import DashboardClient from "./_components/DashboardClient";
 import PageContainer from "@/app/(app)/_components/PageContainer";
+import { decodeToken } from "@/lib/decodeToken";
 
-function readTenantCookie(): string | null {
-  const t = cookies().get("tenant")?.value;
+function normalizeTenant(input: string): string | null {
+  const t = (input ?? "").trim().toLowerCase();
   if (!t) return null;
   if (!/^[a-z0-9-]+$/i.test(t)) return null;
-  return t.toLowerCase();
+  return t;
 }
 
 export default async function Page() {
   const cookieStore = cookies();
-  const token = cookieStore.get("token")?.value;
-  const tenant = readTenantCookie();
 
-  // fallback: se não tiver tenant, manda pro público
-  const loginUrl = tenant ? `${getBaseUrl()}/${tenant}/login?user=${tenant}` : `${getBaseUrl()}/login`;
+  const tenant = normalizeTenant(cookieStore.get("tenant")?.value ?? "");
+  const token = cookieStore.get("token")?.value;
+
+  // ✅ se não tiver tenant, esse dashboard não deveria existir no caminho A
+  // manda para público
+  if (!tenant) {
+    redirect("/");
+  }
+
+  const loginUrl = `/${tenant}/login?user=${encodeURIComponent(tenant)}`;
 
   if (!token) {
     redirect(loginUrl);
@@ -28,12 +33,12 @@ export default async function Page() {
   const user = decodeToken(token);
 
   if (!user) {
-    redirect(loginUrl);
+    redirect(`${loginUrl}&reason=sem-sessao`);
   }
 
-  // se token é de outro login, força login do tenant
-  if (tenant && user.login?.toUpperCase() !== tenant.toUpperCase()) {
-    redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}&reason=tenant-diferente`);
+  // ✅ se token é de outro login, força login do tenant
+  if ((user.login ?? "").toUpperCase() !== tenant.toUpperCase()) {
+    redirect(`${loginUrl}&reason=tenant-diferente`);
   }
 
   return (

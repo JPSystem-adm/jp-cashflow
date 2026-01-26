@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import LoginForm from "../_components/loginForm";
-import { getBaseUrl } from "@/lib/getBaseUrl";
 import { decodeToken } from "@/lib/decodeToken";
 
 const ForceLogout = dynamic(() => import("../_components/ForceLogout"), {
@@ -42,7 +41,7 @@ async function fetchMeServer(token: string): Promise<MeResponse["usuario"] | nul
   return data.usuario ?? null;
 }
 
-function normalizeTenant(value: string | undefined): string | null {
+function normalizeTenant(value: string): string | null {
   const v = (value ?? "").trim().toLowerCase();
   if (!v) return null;
   if (!/^[a-z0-9-]+$/i.test(v)) return null;
@@ -54,53 +53,63 @@ export default async function LoginPage({
 }: {
   searchParams?: SearchParams;
 }) {
-  const urlUser = normalizeTenant(searchParams?.user);
-  const reason = searchParams?.reason;
-
   const cookieStore = cookies();
   const token = cookieStore.get("token")?.value;
 
-  // tenant preferencial: query ?user, senão cookie setado pelo middleware
-  const cookieTenant = normalizeTenant(cookieStore.get("tenant")?.value);
-  const tenant = urlUser ?? cookieTenant;
+  const urlUser = normalizeTenant(searchParams?.user ?? "");
+  const reason = (searchParams?.reason ?? "").trim();
 
-  const base = getBaseUrl();
-  const dashboardUrl = tenant ? `${base}/${tenant}/dashboard` : `${base}/dashboard`;
-  const loginUrlWithUser = tenant ? `${base}/${tenant}/login?user=${encodeURIComponent(tenant)}` : `${base}/login`;
+  const cookieTenant = normalizeTenant(cookieStore.get("tenant")?.value ?? "");
 
-  if (reason === "sem-sessao") {
-    return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
+  // ✅ No caminho A: tenant verdadeiro vem do cookie setado pelo middleware.
+  // Mas se chegou aqui com ?user= e ainda não existe cookie tenant,
+  // redireciona para /{user}/login pra acionar o middleware e setar o cookie.
+  if (urlUser && !cookieTenant) {
+    redirect(`/${urlUser}/login?user=${encodeURIComponent(urlUser)}`);
   }
 
+  // ✅ tenant final: cookie (fonte de verdade); fallback: urlUser (em caso de cookie já estar ok)
+  const tenant = cookieTenant ?? urlUser;
+
+  // Sem tenant => essa rota não faz sentido no caminho A
+  if (!tenant) {
+    redirect("/");
+  }
+
+  const loginUrlWithUser = `/${tenant}/login?user=${encodeURIComponent(tenant)}`;
+  const dashboardUrl = `/${tenant}/dashboard`;
+
+  // se veio motivo pedindo limpeza
+  if (reason === "sem-sessao" || reason === "tenant-diferente") {
+    return <ForceLogout user={tenant.toUpperCase()} />;
+  }
+
+  // Se tem token, valida sessão real na API
   if (token) {
     const decoded = decodeToken(token);
 
     if (!decoded) {
-      return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
+      return <ForceLogout user={tenant.toUpperCase()} />;
     }
 
     const me = await fetchMeServer(token);
 
     if (!me) {
-      return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
+      return <ForceLogout user={tenant.toUpperCase()} />;
     }
 
-    const loggedUser = me.login.toUpperCase();
+    const loggedUser = (me.login ?? "").toUpperCase();
 
-    // sem ?user e sem cookie tenant: manda pro dashboard “genérico”
-    if (!tenant) {
-      redirect(`${base}/dashboard`);
-    }
-
-    // se o tenant existe e bate com o login, manda pro dashboard do tenant
-    if (tenant && loggedUser === tenant.toUpperCase()) {
+    // ✅ se bate com tenant, manda pro dashboard do tenant
+    if (loggedUser === tenant.toUpperCase()) {
       redirect(dashboardUrl);
     }
 
-    // tentou entrar com tenant diferente
-    return <ForceLogout user={(urlUser ?? "").toUpperCase()} />;
+    // token de outro usuário
+    return <ForceLogout user={tenant.toUpperCase()} />;
   }
 
-  // não autenticado -> mostra form (o form vai empurrar para /{tenant}/dashboard)
-  return <LoginForm defaultLogin={(urlUser ?? "").toUpperCase()} />;
+  // não autenticado -> mostra form
+  // IMPORTANTE: o form precisa receber tenant para navegar para /{tenant}/dashboard
+  return <LoginForm tenant={tenant} defaultLogin={tenant.toUpperCase()} />;
 }

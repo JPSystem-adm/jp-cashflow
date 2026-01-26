@@ -1,32 +1,8 @@
 // src/app/(app)/inicio/page.tsx
 import { redirect } from "next/navigation";
-import { cookies, headers } from "next/headers";
-import { getBaseUrl } from "@/lib/getBaseUrl";
+import { cookies } from "next/headers";
 
 type ValidaTenantResponse = { id?: string | number };
-
-function tenantFromPathname(pathname: string): string | null {
-  const seg = pathname.split("/").filter(Boolean)[0] ?? null;
-  if (!seg) return null;
-
-  // não aceitar rotas “reservadas” como tenant
-  const reserved = new Set([
-    "login",
-    "cadastro",
-    "unauthorized",
-    "about",
-    "inicio",
-    "dashboard",
-    "cadastros",
-    "lancamentos",
-    "agendamentos",
-  ]);
-
-  if (reserved.has(seg)) return null;
-  if (!/^[a-z0-9-]+$/i.test(seg)) return null;
-
-  return seg.toLowerCase();
-}
 
 async function getUserIdByTenant(tenant: string): Promise<string | null> {
   try {
@@ -56,10 +32,18 @@ async function getUserIdByTenant(tenant: string): Promise<string | null> {
 }
 
 type MeResponse = {
-  usuario?: { id: number; login: string; nome: string; perfil: string; email?: string };
+  usuario?: {
+    id: number;
+    login: string;
+    nome: string;
+    perfil: string;
+    email?: string;
+  };
 };
 
-async function validateSessionWithApi(token: string): Promise<MeResponse["usuario"] | null> {
+async function validateSessionWithApi(
+  token: string
+): Promise<MeResponse["usuario"] | null> {
   const apiBase = process.env.NEXT_PUBLIC_BASEURL_API;
   if (!apiBase) return null;
 
@@ -76,50 +60,50 @@ async function validateSessionWithApi(token: string): Promise<MeResponse["usuari
   return data.usuario ?? null;
 }
 
+function normalizeTenant(input: string): string | null {
+  const t = (input ?? "").trim().toLowerCase();
+  if (!t) return null;
+  if (!/^[a-z0-9-]+$/i.test(t)) return null;
+  return t;
+}
+
 export default async function Page() {
-  const h = headers();
-  const pathname = h.get("x-pathname") ?? ""; // pode não existir
-  // fallback seguro: usar o referer se tiver (dev); se não tiver, cai em redirect abaixo
-  const referer = h.get("referer") ?? "";
-  const pathFromReferer = (() => {
-    try {
-      return referer ? new URL(referer).pathname : "";
-    } catch {
-      return "";
-    }
-  })();
+  const cookieStore = cookies();
 
-  const tenant = tenantFromPathname(pathFromReferer || pathname);
+  // ✅ fonte de verdade no caminho A: cookie setado pelo middleware
+  const tenant = normalizeTenant(cookieStore.get("tenant")?.value ?? "");
 
+  // Sem tenant => público
   if (!tenant) {
-    return redirect(`${getBaseUrl()}/`);
+    redirect("/");
   }
 
-  // valida tenant na API (reusa endpoint atual)
+  // ✅ valida tenant na API (reusa endpoint atual)
   const userId = await getUserIdByTenant(tenant);
   if (!userId) {
-    return redirect(`${getBaseUrl()}/`);
+    // tenant inválido => público
+    redirect("/");
   }
 
-  const token = cookies().get("token")?.value;
+  const token = cookieStore.get("token")?.value;
 
-  // não logado => manda pro login DO TENANT (URL pública)
+  // não logado => manda para login do tenant (path)
   if (!token) {
-    return redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}`);
+    redirect(`/${tenant}/login?user=${encodeURIComponent(tenant)}`);
   }
 
   const me = await validateSessionWithApi(token);
 
-  // token inválido => manda pro login DO TENANT
+  // token inválido => login do tenant com motivo
   if (!me) {
-    return redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}&reason=sem-sessao`);
+    redirect(`/${tenant}/login?user=${encodeURIComponent(tenant)}&reason=sem-sessao`);
   }
 
   // login do token precisa bater com tenant
-  if (me.login?.toUpperCase() !== tenant.toUpperCase()) {
-    return redirect(`${getBaseUrl()}/${tenant}/login?user=${tenant}&reason=tenant-diferente`);
+  if ((me.login ?? "").toUpperCase() !== tenant.toUpperCase()) {
+    redirect(`/${tenant}/login?user=${encodeURIComponent(tenant)}&reason=tenant-diferente`);
   }
 
-  // ✅ sempre com tenant no path (URL pública)
-  return redirect(`${getBaseUrl()}/${tenant}/dashboard`);
+  // ✅ OK
+  redirect(`/${tenant}/dashboard`);
 }

@@ -1,6 +1,8 @@
 // src/app/(app)/layout.tsx
 
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -20,9 +22,27 @@ export const metadata: Metadata = {
   description: "Para suas necessidades financeiras",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+function normalizeTenant(value: string | undefined): string | null {
+  const v = (value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!v) return null;
+  if (!/^[a-z0-9-]+$/i.test(v)) return null;
+  return v;
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  // ✅ tenant vem do cookie httpOnly (setado no middleware)
+  const cookieStore = cookies();
+  const tenant = normalizeTenant(cookieStore.get("tenant")?.value);
+
   return (
     <html lang="pt-BR" className="light" suppressHydrationWarning>
       <body className={inter.className}>
@@ -32,7 +52,8 @@ export default function RootLayout({
 
             {/* ===== Parte central ===== */}
             <div className="flex min-h-screen flex-col pt-14">
-              <ClientDrawer />
+              {/* ✅ passa o tenant pro client drawer */}
+              <ClientDrawer tenant={tenant ?? undefined} />
 
               {/* Conteúdo */}
               <main className="flex flex-1 flex-col items-center bg-white">

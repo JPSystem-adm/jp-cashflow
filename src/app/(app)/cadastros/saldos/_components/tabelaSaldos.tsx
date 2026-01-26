@@ -67,7 +67,10 @@ function normalizeRow(raw: unknown): SaldoRowUI | null {
     toNumber(r.valor, NaN) ||
     0;
 
-  const valorPeriodo = toNumber(r.valorPeriodo ?? r.movimentacao ?? r.periodoValor ?? 0, 0);
+  const valorPeriodo = toNumber(
+    r.valorPeriodo ?? r.movimentacao ?? r.periodoValor ?? 0,
+    0
+  );
 
   const saldoAtual =
     toNumber(r.saldoAtual, NaN) ||
@@ -86,6 +89,10 @@ function normalizeRow(raw: unknown): SaldoRowUI | null {
     saldoAtual: Number.isFinite(saldoAtual) ? saldoAtual : 0,
     FonteId: Number.isFinite(FonteId) ? Math.trunc(FonteId) : 0,
   };
+}
+
+function calcMovimento(valorInicial: number, saldoAtual: number): number {
+  return saldoAtual - valorInicial;
 }
 
 export default function TabelaSaldo() {
@@ -110,7 +117,7 @@ export default function TabelaSaldo() {
 
   return (
     <div className="w-full overflow-x-auto">
-      <Table className="border-collapse border-spacing-0 w-full min-w-[720px]">
+      <Table className="border-collapse border-spacing-0 w-full min-w-[900px]">
         <TableHeader>
           <TableRow>
             <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-lg">
@@ -119,6 +126,12 @@ export default function TabelaSaldo() {
             <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-lg">
               Saldo Inicial
             </TableHead>
+
+            {/* ✅ NOVA COLUNA */}
+            <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-lg">
+              Movimento
+            </TableHead>
+
             <TableHead className="bg-sky-900 border-2 border-sky-700 text-sky-50 text-center text-lg">
               Saldo Atual
             </TableHead>
@@ -134,37 +147,56 @@ export default function TabelaSaldo() {
         <TableBody>
           {normalizedRows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-slate-500 py-8">
+              <TableCell colSpan={6} className="text-center text-slate-500 py-8">
                 Nenhum saldo encontrado para este período.
               </TableCell>
             </TableRow>
           ) : (
-            normalizedRows.map((item, index) => (
-              <TableRow
-                className="hover:bg-slate-200"
-                key={`${item.FonteId}-${item.saldoId}-${index}`}
-              >
-                <TableCell className="border-2 border-sky-900 text-sky-900 text-center text-lg">
-                  {item.Fonte}
-                </TableCell>
-                <TableCell className="border-2 border-sky-900 text-sky-900 text-center text-lg">
-                  {DoubleToRealBR(item.valorInicial)}
-                </TableCell>
-                <TableCell className="border-2 border-sky-900 text-sky-900 text-center text-lg">
-                  {DoubleToRealBR(item.saldoAtual)}
-                </TableCell>
-                <TableCell className="border-2 border-sky-900 text-center text-sky-900 text-lg">
-                  {item.Tipo}
-                </TableCell>
-                <TableCell className="border-2 border-sky-900">
-                  <div className="flex justify-center">
-                    <Button variant="ghost" onClick={() => onEdit(index)}>
-                      <FileEditIcon className="h-6 w-6 text-sky-800" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
+            normalizedRows.map((item, index) => {
+              const movimento = calcMovimento(item.valorInicial, item.saldoAtual);
+
+              const movimentoClass =
+                movimento > 0
+                  ? "text-green-700"
+                  : movimento < 0
+                  ? "text-red-700"
+                  : "text-sky-900";
+
+              return (
+                <TableRow
+                  className="hover:bg-slate-200"
+                  key={`${item.FonteId}-${item.saldoId}-${index}`}
+                >
+                  <TableCell className="border-2 border-sky-900 text-sky-900 text-center text-lg">
+                    {item.Fonte}
+                  </TableCell>
+                  <TableCell className="border-2 border-sky-900 text-sky-900 text-center text-lg">
+                    {DoubleToRealBR(item.valorInicial)}
+                  </TableCell>
+
+                  {/* ✅ NOVA COLUNA (saldoAtual - saldoInicial) */}
+                  <TableCell
+                    className={`border-2 border-sky-900 text-center text-lg font-semibold ${movimentoClass}`}
+                  >
+                    {DoubleToRealBR(movimento)}
+                  </TableCell>
+
+                  <TableCell className="border-2 border-sky-900 text-sky-900 text-center text-lg">
+                    {DoubleToRealBR(item.saldoAtual)}
+                  </TableCell>
+                  <TableCell className="border-2 border-sky-900 text-center text-sky-900 text-lg">
+                    {item.Tipo}
+                  </TableCell>
+                  <TableCell className="border-2 border-sky-900">
+                    <div className="flex justify-center">
+                      <Button variant="ghost" onClick={() => onEdit(index)}>
+                        <FileEditIcon className="h-6 w-6 text-sky-800" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>

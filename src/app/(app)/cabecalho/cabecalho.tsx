@@ -40,7 +40,6 @@ export default function Cabecalho() {
   const isLogged = !!usuarioNome;
 
   const tenant = useMemo(() => {
-    // fonte de verdade no client: cookie setado pelo middleware
     return normalizeTenant(readCookie("tenant"));
   }, []);
 
@@ -48,18 +47,19 @@ export default function Cabecalho() {
 
   return (
     <header className="fixed top-0 left-0 w-full h-14 px-3 sm:px-4 bg-sky-900 border-b border-sky-950/30 text-sky-50 z-10">
-      <div className="flex items-center h-full gap-2">
-        {/* Logo / Nome */}
+      <div className="flex items-center h-full gap-2 min-w-0">
+        {/* Logo / Nome (compacto no mobile) */}
         <Link
-          className="flex items-center gap-2 text-lg sm:text-xl font-semibold"
+          className="flex items-center gap-2 text-base sm:text-xl font-semibold min-w-0"
           href={dashboardHref}
         >
-          <ActivityIcon className="w-6 h-6 text-sky-50" />
-          <span className="text-sky-50 whitespace-nowrap">JP Cash Flow</span>
+          <ActivityIcon className="w-5 h-5 sm:w-6 sm:h-6 text-sky-50" />
+          <span className="text-sky-50 whitespace-nowrap hidden sm:inline">
+            JP Cash Flow
+          </span>
         </Link>
 
-        {/* Empurra tudo pro lado direito */}
-        <div className="ml-auto flex items-center gap-2 sm:gap-4">
+        <div className="ml-auto flex items-center gap-2 sm:gap-4 min-w-0">
           {isLogged && <Periodo />}
           {isLogged && <UserMenu />}
         </div>

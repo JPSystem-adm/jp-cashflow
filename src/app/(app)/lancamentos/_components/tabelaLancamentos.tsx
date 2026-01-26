@@ -30,8 +30,6 @@ import ExportaTabela from "./exportarTabela";
 
 import type { OperacaoLancamento } from "@/app/(app)/actions/lancamentoAPI";
 import { excluirLancamento } from "@/app/(app)/actions/lancamentoAPI";
-import { Plus } from "lucide-react";
-
 
 type LancamentoCardProps = {
   item: tyLancamento;
@@ -48,12 +46,10 @@ function formatDateOnlyBR(value: string): string {
   // espera "YYYY-MM-DD"
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!m) return "";
-
   const day = m[3];
   const month = m[2];
   return `${day}/${month}`; // dd/MM
 }
-
 
 function LancamentoCard({ item, onEdit, onDelete }: LancamentoCardProps) {
   const id = item.lancamentoId || 0;
@@ -159,6 +155,8 @@ export default function TabelaLancamentos() {
     if (novaPagina < 1) return;
     if (novaPagina > totalPaginas) return;
     setCurrentPage(novaPagina);
+    // opcional: volta pro topo da lista no mobile
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // seleção e edição
@@ -168,11 +166,9 @@ export default function TabelaLancamentos() {
 
   const [openNovo, setOpenNovo] = useState(false);
 
-
   const handleConfirm = async () => {
     await excluirLancamento(indice);
 
-    // mantém seu padrão de refetch por filtros
     queryClient.refetchQueries(["lancamentos", periodoId, grupoId, subGrupoId, fonteId]);
 
     setShowConfirmation(false);
@@ -193,7 +189,6 @@ export default function TabelaLancamentos() {
     setFormFonteIdO(item.fonteId || 0);
     setFormFonteIdD(item.fonteIdD ?? null);
 
-    // ✅ corrigido: tipo OperacaoLancamento
     setOperacao(normalizeOperacao(item.operacao));
 
     setIndice(id);
@@ -202,7 +197,7 @@ export default function TabelaLancamentos() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full pb-24 sm:pb-0">
       {showConfirmation && (
         <ConfirmationBox
           title="Confirmação!"
@@ -227,18 +222,8 @@ export default function TabelaLancamentos() {
           <ExportaTabela />
         </div>
         <div className="flex justify-start sm:justify-end gap-2">
-          {/* <Button
-            type="button"
-            className="bg-sky-800 text-white hover:bg-sky-900"
-            onClick={() => setOpenNovo(true)}
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Lançamento
-          </Button> */}
-
           <NovoLancamentosForm open={openNovo} onOpenChange={setOpenNovo} />
         </div>
-
       </div>
 
       {/* ✅ MOBILE: cards */}
@@ -333,27 +318,42 @@ export default function TabelaLancamentos() {
         </Table>
       </div>
 
-      {/* Paginação responsiva */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-2">
-        <button
-          onClick={() => mudarPagina(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="bg-sky-950 text-white px-4 py-2 rounded disabled:opacity-50 w-full sm:w-auto"
-        >
-          Anterior
-        </button>
+      {/* ✅ Paginação:
+          - no mobile vira "barra fixa" acima do rodapé (ou no final da tela, se você ocultou o footer)
+          - no desktop fica normal no fluxo
+      */}
+      <div
+        className={[
+          "sm:static sm:bg-transparent sm:border-0 sm:p-0 sm:rounded-none sm:shadow-none",
+          "fixed left-0 right-0 bottom-0 z-20",
+          "bg-white/95 backdrop-blur border-t border-slate-200",
+          "px-3 py-2",
+          // se seu footer ainda existir no mobile, reserva espaço dele:
+          // se você estiver escondendo o footer em /lancamentos, pode trocar para "bottom-0" mesmo (já está)
+          "sm:mb-0",
+        ].join(" ")}
+      >
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <button
+            onClick={() => mudarPagina(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="bg-sky-950 text-white px-4 py-2 rounded disabled:opacity-50 w-full sm:w-auto"
+          >
+            Anterior
+          </button>
 
-        <span className="text-center text-sm sm:text-base">
-          Página {currentPage} de {totalPaginas}
-        </span>
+          <span className="text-center text-sm sm:text-base">
+            Página {currentPage} de {totalPaginas}
+          </span>
 
-        <button
-          onClick={() => mudarPagina(currentPage + 1)}
-          disabled={currentPage === totalPaginas}
-          className="bg-sky-950 text-white px-4 py-2 rounded disabled:opacity-50 w-full sm:w-auto"
-        >
-          Próximo
-        </button>
+          <button
+            onClick={() => mudarPagina(currentPage + 1)}
+            disabled={currentPage === totalPaginas}
+            className="bg-sky-950 text-white px-4 py-2 rounded disabled:opacity-50 w-full sm:w-auto"
+          >
+            Próximo
+          </button>
+        </div>
       </div>
     </div>
   );

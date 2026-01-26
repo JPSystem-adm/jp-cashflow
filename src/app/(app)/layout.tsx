@@ -1,5 +1,4 @@
 // src/app/(app)/layout.tsx
-
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
@@ -50,14 +49,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <GlobalProvider userId={0}>
             <Cabecalho />
 
-            {/* ===== Parte central ===== */}
-            <div className="flex min-h-screen flex-col pt-14">
+            {/* ===== Parte central =====
+               - min-h-dvh: melhor no mobile
+               - pt-14: reserva o header fixo
+               - pb-14 só em telas >= sm (rodapé aparece)
+            */}
+            <div className="flex min-h-dvh flex-col pt-14 sm:pb-14">
               {/* ✅ passa o tenant pro client drawer */}
               <ClientDrawer tenant={tenant ?? undefined} />
 
               {/* Conteúdo */}
               <main className="flex flex-1 flex-col items-center bg-white">
-                <div className="w-full max-w-6xl px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 overflow-x-auto">
+                {/* padding mais enxuto no mobile */}
+                <div className="w-full max-w-6xl px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-4">
                   {children}
                 </div>
               </main>

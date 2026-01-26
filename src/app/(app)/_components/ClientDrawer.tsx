@@ -3,18 +3,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/drawer";
-
 import {
   IconDashBoard,
   IconLancamentos,
@@ -25,6 +14,14 @@ import {
   IconSaldos,
   IconAbout,
 } from "./iconsMenu";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 
 type Props = {
   tenant?: string;
@@ -46,25 +43,26 @@ function normalizeTenant(value: string | undefined): string | null {
   return v;
 }
 
+function withTenant(tenant: string | null, path: string): string {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return tenant ? `/${tenant}${p}` : p;
+}
+
 export default function ClientDrawer({ tenant }: Props) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const pathname = usePathname();
 
-  const t = useMemo(() => normalizeTenant(tenant), [tenant]);
+  const tenantNorm = useMemo(() => normalizeTenant(tenant), [tenant]);
 
   const handleLinkClick = () => setIsDrawerOpen(false);
 
-  // ✅ Prefixa o tenant quando existir e quando você estiver no “modo tenant”
-  // (Se quiser sempre prefixar quando tiver cookie, deixa assim mesmo.)
-  const href = (path: string) => {
-    const p = path.startsWith("/") ? path : `/${path}`;
-    if (!t) return p;
-    return `/${t}${p}`;
-  };
-
   return (
     <div className="flex flex-col">
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} direction="left">
+      <Drawer
+        scroll-smooth
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        direction="left"
+      >
         <DrawerTrigger asChild>
           <div className="w-10">
             <Button variant="ghost" onClick={() => setIsDrawerOpen(true)}>
@@ -86,9 +84,8 @@ export default function ClientDrawer({ tenant }: Props) {
           <nav className="flex flex-col py-0 bg-sky-900 text-sky-50 flex-1 justify-center mb-24">
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/dashboard")}
+              href={withTenant(tenantNorm, "/dashboard")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/dashboard") ? "page" : undefined}
             >
               <IconDashBoard className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
@@ -98,9 +95,8 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/lancamentos")}
+              href={withTenant(tenantNorm, "/lancamentos")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/lancamentos") ? "page" : undefined}
             >
               <IconLancamentos className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
@@ -110,9 +106,8 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/cadastros/grupoDeContas")}
+              href={withTenant(tenantNorm, "/cadastros/grupoDeContas")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/cadastros/grupoDeContas") ? "page" : undefined}
             >
               <IconGrupoContas className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
@@ -122,9 +117,8 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/cadastros/fonte")}
+              href={withTenant(tenantNorm, "/cadastros/fonte")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/cadastros/fonte") ? "page" : undefined}
             >
               <IconContasFinanceiras className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
@@ -134,9 +128,8 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/cadastros/orcamentos")}
+              href={withTenant(tenantNorm, "/cadastros/orcamentos")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/cadastros/orcamentos") ? "page" : undefined}
             >
               <IconOrcamentos className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
@@ -146,9 +139,8 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/cadastros/saldos")}
+              href={withTenant(tenantNorm, "/cadastros/saldos")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/cadastros/saldos") ? "page" : undefined}
             >
               <IconSaldos className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
@@ -158,9 +150,8 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
-              href={href("/about")}
+              href={withTenant(tenantNorm, "/about")}
               onClick={handleLinkClick}
-              aria-current={pathname?.includes("/about") ? "page" : undefined}
             >
               <IconAbout className="w-6 h-6 mr-3" />
               <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">

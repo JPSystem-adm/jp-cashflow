@@ -72,9 +72,10 @@ function normalizeRow(raw: unknown): SaldoRowUI | null {
     0
   );
 
-  const saldoAtual =
-    toNumber(r.saldoAtual, NaN) ||
-    (Number.isFinite(valorInicial) ? valorInicial + valorPeriodo : 0);
+ const saldoAtualFromApi = toNumber(r.saldoAtual, NaN);
+const saldoAtual = Number.isFinite(saldoAtualFromApi)
+  ? saldoAtualFromApi
+  : (Number.isFinite(valorInicial) ? (valorInicial - valorPeriodo) : 0);
 
   if (!Fonte.trim()) return null;
 
@@ -91,8 +92,8 @@ function normalizeRow(raw: unknown): SaldoRowUI | null {
   };
 }
 
-function calcMovimento(valorInicial: number, saldoAtual: number): number {
-  return saldoAtual - valorInicial;
+function calcMovimento(valorPeriodo: number): number {
+  return valorPeriodo;
 }
 
 export default function TabelaSaldo() {
@@ -153,7 +154,7 @@ export default function TabelaSaldo() {
             </TableRow>
           ) : (
             normalizedRows.map((item, index) => {
-              const movimento = calcMovimento(item.valorInicial, item.saldoAtual);
+              const movimento = calcMovimento(item.valorPeriodo);
 
               const movimentoClass =
                 movimento > 0

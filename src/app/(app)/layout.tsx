@@ -6,8 +6,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 
 import ClientDrawer from "./_components/ClientDrawer";
+import BottomNav from "./_components/BottomNav";
 
-// PROVIDERS / COMPONENTES
 import { Query2ClientProvider } from "@/lib/queryProvider";
 import queryClient from "@/lib/reactQuery";
 import { GlobalProvider } from "./contextGlobal";
@@ -38,7 +38,6 @@ function normalizeTenant(value: string | undefined): string | null {
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  // ✅ tenant vem do cookie httpOnly (setado no middleware)
   const cookieStore = cookies();
   const tenant = normalizeTenant(cookieStore.get("tenant")?.value);
 
@@ -49,26 +48,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <GlobalProvider userId={0}>
             <Cabecalho />
 
-            {/* ===== Parte central =====
-               - min-h-dvh: melhor no mobile
-               - pt-14: reserva o header fixo
-               - pb-14 só em telas >= sm (rodapé aparece)
-            */}
-            <div className="flex min-h-dvh flex-col pt-14 sm:pb-14">
-              {/* ✅ passa o tenant pro client drawer */}
+            <div className="flex min-h-dvh flex-col pt-14 sm:pt-14">
               <ClientDrawer tenant={tenant ?? undefined} />
 
-              {/* Conteúdo */}
-              <main className="flex flex-1 flex-col items-center bg-white">
-                {/* padding mais enxuto no mobile */}
-                <div className="w-full max-w-6xl px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-4">
+              {/* Conteúdo: mais compacto no mobile + espaço pro BottomNav */}
+              <main className="flex flex-1 flex-col items-center bg-white pb-16 sm:pb-0">
+                <div className="w-full max-w-6xl px-3 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-4">
                   {children}
                 </div>
               </main>
 
-              <Rodape />
+              {/* Desktop mantém rodapé, mobile troca por BottomNav */}
+              <div className="hidden sm:block">
+                <Rodape />
+              </div>
+
+              <BottomNav />
             </div>
-            {/* ======================== */}
           </GlobalProvider>
         </Query2ClientProvider>
       </body>

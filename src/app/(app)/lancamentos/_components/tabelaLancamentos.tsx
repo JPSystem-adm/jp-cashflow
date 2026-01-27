@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLancamentoContext } from "./contextLancamentoProvider";
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
 
@@ -318,60 +318,31 @@ export default function TabelaLancamentos() {
         </Table>
       </div>
 
-      {/* ✅ Paginação:
-          - no mobile vira "barra fixa" acima do rodapé (ou no final da tela, se você ocultou o footer)
-          - no desktop fica normal no fluxo
-      */}
-      <div
-        className={[
-          "sm:static sm:bg-transparent sm:border-0 sm:p-0 sm:rounded-none sm:shadow-none",
-          "fixed left-0 right-0 bottom-0 z-20",
-          "bg-white/95 backdrop-blur border-t border-slate-200",
-          "px-3 py-2",
-          // se seu footer ainda existir no mobile, reserva espaço dele:
-          // se você estiver escondendo o footer em /lancamentos, pode trocar para "bottom-0" mesmo (já está)
-          "sm:mb-0",
-        ].join(" ")}
-      >
-        {/* Paginação responsiva */}
-        <div
-          className={[
-            "sm:static sm:bg-transparent sm:border-0 sm:p-0 sm:rounded-none sm:shadow-none",
-            "fixed left-0 right-0 bottom-0 z-20",
-            "bg-white/95 backdrop-blur border-t border-slate-200",
-            "px-3 py-2",
-          ].join(" ")}
+      {/* ✅ Paginação: */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => mudarPagina(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="h-9 px-3"
         >
-          <div className="flex items-center justify-between gap-2">
-            <button
-              onClick={() => mudarPagina(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="inline-flex items-center justify-center rounded px-3 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-slate-200 text-slate-700 sm:bg-sky-950 sm:text-white"
-              aria-label="Anterior"
-              title="Anterior"
-            >
-              {/* << no mobile, 'Anterior' no desktop */}
-              <span className="sm:hidden text-lg leading-none">{"<<"}</span>
-              <span className="hidden sm:inline">Anterior</span>
-            </button>
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
 
-            <span className="text-center text-sm sm:text-base whitespace-nowrap">
-              Página {currentPage} de {totalPaginas}
-            </span>
+        <span className="text-sm font-semibold text-slate-700">
+          {currentPage}/{totalPaginas}
+        </span>
 
-            <button
-              onClick={() => mudarPagina(currentPage + 1)}
-              disabled={currentPage === totalPaginas}
-              className="inline-flex items-center justify-center rounded px-3 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-sky-950 text-white"
-              aria-label="Próximo"
-              title="Próximo"
-            >
-              {/* >> no mobile, 'Próximo' no desktop */}
-              <span className="sm:hidden text-lg leading-none">{">>"}</span>
-              <span className="hidden sm:inline">Próximo</span>
-            </button>
-          </div>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => mudarPagina(currentPage + 1)}
+          disabled={currentPage === totalPaginas}
+          className="h-9 px-3"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   );

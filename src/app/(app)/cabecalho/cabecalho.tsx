@@ -46,7 +46,7 @@ export default function Cabecalho() {
   const dashboardHref = withTenant(tenant, "/dashboard");
 
   return (
-    <header className="fixed top-0 left-0 w-full h-14 px-3 sm:px-4 bg-sky-900 border-b border-sky-950/30 text-sky-50 z-10">
+    <header className="fixed top-0 left-0 w-full h-12 sm:h-14 px-3 sm:px-4 bg-sky-900 border-b border-sky-950/30 text-sky-50 z-10">
       <div className="flex items-center h-full gap-2 min-w-0">
         {/* Logo / Nome (compacto no mobile) */}
         <Link

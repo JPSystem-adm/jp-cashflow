@@ -1,129 +1,160 @@
-// src/app/dashboard/_components/graficoBarDespesas.tsx
+// src/app/(app)/dashboard/_components/graficoBarDespesas.tsx
+"use client";
 
-"use client"
-
+import { useEffect, useMemo } from "react";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend} from "chart.js";
-import { useDashboardContext } from "./contextDashboardProvider";
-import { useGlobalContext } from "@/app/(app)/contextGlobal";
-import { useEffect } from "react";
-import { RetEstatisticaDespesas } from "@/app/(app)/actions/graficosActions";
-
-ChartJS.register(
+import {
+  Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
   Title,
   Tooltip,
-  Legend
-);
+  Legend,
+  type ChartOptions,
+  type ChartData,
+} from "chart.js";
+
+import { useDashboardContext } from "./contextDashboardProvider";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+type BarLabel = string;
+type DatasetKey = "real" | "orcado";
+
+function toNumber(v: unknown): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
 
 export default function GraficoBarDespesas() {
-  const { dadosBarDespesas, setDadosBarDespesas } = useDashboardContext();
-  const { periodoId } = useGlobalContext();
+  // ✅ agora vem tudo do provider (sem fetch aqui)
+  const { despesas, loading } = useDashboardContext();
 
-  
+  // ✅ garante labels estáveis e números normalizados
+  const { labels, valoresReal, valoresOrcado } = useMemo(() => {
+    const lbls: string[] = [];
+    const real: number[] = [];
+    const orcado: number[] = [];
+
+    for (const d of despesas) {
+      lbls.push(String(d.Grupo ?? ""));
+      real.push(toNumber(d.valorReal));
+      orcado.push(toNumber(d.valorOrcado));
+    }
+
+    return { labels: lbls, valoresReal: real, valoresOrcado: orcado };
+  }, [despesas]);
+
+  // se quiser, pode manter logs (mas normalmente eu tiraria)
   useEffect(() => {
-    async function carregaDados() {
-      console.log("Periodo: ",periodoId);
-      const response = await RetEstatisticaDespesas(periodoId);
-      console.log("Response",response);
-      setDadosBarDespesas(response);
-    }
-    
-    if(periodoId){
-      carregaDados();
-    }
-  },[periodoId, setDadosBarDespesas]);
+    // console.log("Despesas carregadas:", despesas.length);
+  }, [despesas.length]);
 
+  const data: ChartData<"bar", number[], BarLabel> = useMemo(
+    () => ({
+      labels,
+      datasets: [
+        {
+          label: "Real",
+          data: valoresReal,
+          backgroundColor: "rgba(14, 165, 233, 0.75)",
+          borderColor: "rgba(14, 165, 233, 1)",
+          borderWidth: 1,
+        },
+        {
+          label: "Orçado",
+          data: valoresOrcado,
+          backgroundColor: "rgba(245, 158, 11, 0.35)",
+          borderColor: "rgba(245, 158, 11, 1)",
+          borderWidth: 1,
+        },
+      ],
+    }),
+    [labels, valoresReal, valoresOrcado]
+  );
 
-  const data = {
-    labels: dadosBarDespesas.map((despesa) => despesa.Grupo),
-    datasets: [
-      {
-        label: "Valor Real",
-        data: dadosBarDespesas.map((despesa) => despesa.valorReal),
-        backgroundColor: [
-          'rgba(168, 85, 247, 0.8)',
-          'rgba(06, 182, 212, 0.8)',
-          'rgba(132, 204, 22, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(217, 70, 239, 0.8)',
-          'rgba(14, 165, 233, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(249, 115, 22, 0.8)',
-          'rgba(236, 72, 153, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(234, 179, 8, 0.8)',
-        ],
-        borderColor: [
-          'rgba(168, 85, 247, 1)',
-          'rgba(06, 182, 212, 1)',
-          'rgba(132, 204, 22, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(217, 70, 239, 1)',
-          'rgba(14, 165, 233, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(249, 115, 22, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(234, 179, 8, 1)',
-        ], 
-        borderWidth: 1,
+  const options: ChartOptions<"bar"> = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: "top",
+        },
+        title: {
+          display: true,
+          text: "Totais das Despesas no Período",
+          color: "rgb(7 89 133)",
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = typeof ctx.raw === "number" ? ctx.raw : toNumber(ctx.raw);
+              const brl = new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(v);
+              return `${ctx.dataset.label}: ${brl}`;
+            },
+          },
+        },
       },
-      {
-        label: "Valor Orçado",
-        data: dadosBarDespesas.map((despesa) => despesa.valorOrcado),
-        backgroundColor: [
-          'rgba(168, 85, 247, 0.2)',
-          'rgba(06, 182, 212, 0.2)',
-          'rgba(132, 204, 22, 0.2)',
-          'rgba(245, 158, 11, 0.2)',
-          'rgba(217, 70, 239, 0.2)',
-          'rgba(14, 165, 233, 0.2)',
-          'rgba(34, 197, 94, 0.2)',
-          'rgba(249, 115, 22, 0.2)',
-          'rgba(236, 72, 153, 0.2)',
-          'rgba(59, 130, 246, 0.2)',
-          'rgba(16, 185, 129, 0.2)',
-          'rgba(234, 179, 8, 0.2)',
-        ],
-        borderColor: [
-          'rgba(168, 85, 247, 1)',
-          'rgba(06, 182, 212, 1)',
-          'rgba(132, 204, 22, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(217, 70, 239, 1)',
-          'rgba(14, 165, 233, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(249, 115, 22, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(234, 179, 8, 1)',
-        ], 
-        borderWidth: 1,
+      scales: {
+        x: {
+          ticks: {
+            color: "rgb(7 89 133)",
+            maxRotation: 0,
+            autoSkip: true,
+          },
+          grid: {
+            display: false,
+          },
+        },
+        y: {
+          ticks: {
+            color: "rgb(7 89 133)",
+            callback: (value) => {
+              const v = typeof value === "number" ? value : toNumber(value);
+              return new Intl.NumberFormat("pt-BR", {
+                notation: "compact",
+                compactDisplay: "short",
+              }).format(v);
+            },
+          },
+          grid: {
+            color: "rgba(2, 132, 199, 0.15)",
+          },
+        },
       },
-    ],
-  };
+    }),
+    []
+  );
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false,
-        position: "top" as const,
-      },
-      title: {
-        color:'rgb(7 89 133)',
-        display: true,
-        text: "Totais das Despesas no Periodo",
-      },
-    },
-  };
+  if (loading.despesas) {
+    return (
+      <div className="w-full h-72 sm:h-96 rounded-2xl border bg-white flex items-center justify-center text-slate-500">
+        Carregando gráfico...
+      </div>
+    );
+  }
+
+  if (!despesas || despesas.length === 0) {
+    return (
+      <div className="w-full h-72 sm:h-96 rounded-2xl border bg-white flex items-center justify-center text-slate-500">
+        Sem dados de despesas para este período.
+      </div>
+    );
+  }
+
   return (
-    <Bar data={data} options={options} className="flex max-h-96 min-w-[100%] text-sky-800" />
+    <div className="w-full h-72 sm:h-96">
+      <Bar data={data} options={options} />
+    </div>
   );
 }

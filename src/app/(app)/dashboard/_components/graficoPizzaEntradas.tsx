@@ -1,3 +1,5 @@
+// src/app/dashboard/_components/graficoPizzaEntradas.tsx
+
 "use client"
 
 import { Pie } from 'react-chartjs-2';

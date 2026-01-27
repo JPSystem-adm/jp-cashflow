@@ -1,3 +1,5 @@
+// src/app/dashboard/_components/graficoBarSubContas.tsx
+
 'use client'
 
 import { Bar } from "react-chartjs-2";

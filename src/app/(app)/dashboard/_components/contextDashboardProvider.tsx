@@ -21,29 +21,25 @@ import type {
   tySomatoriasPeriodo,
 } from "@/types/types";
 
-type DashboardContextValue = {
-  // dados
+export type DashboardContextValue = {
   despesas: tyDespesaGrafico[];
   entradas: tyEntradasGrafico[];
   subContas: tySubGruposGrafico[];
   gruposDespesas: tySelects[];
   somatoriasFontes: tySomatoriasPeriodo[];
 
-  // estado do filtro
   grupoId: number;
   setGrupoId: (id: number) => void;
 
-  // kpis calculados
   kpis: {
     totalDespesas: number;
     totalReceitas: number;
-    saldoPeriodo: number; // receitas - despesas
-    totalCartoes: number; // Tipo "C"
-    totalDisponivel: number; // Tipo "M"
-    totalInvestimentos: number; // Tipo "A"
+    saldoPeriodo: number;
+    totalCartoes: number;
+    totalDisponivel: number;
+    totalInvestimentos: number;
   };
 
-  // loading
   loading: {
     despesas: boolean;
     entradas: boolean;
@@ -78,7 +74,6 @@ type ProviderProps = { children: ReactNode };
 
 export function DashboardProvider({ children }: ProviderProps) {
   const { periodoId } = useGlobalContext();
-
   const [grupoId, setGrupoId] = React.useState<number>(0);
 
   const qDespesas = useQuery({
@@ -111,16 +106,36 @@ export function DashboardProvider({ children }: ProviderProps) {
 
   const qSubContas = useQuery({
     queryKey: ["dash", "subcontas", periodoId, grupoId],
-    enabled: !!periodoId && grupoId > 0, // só busca quando escolher um grupo
+    enabled: !!periodoId && grupoId > 0,
     queryFn: async () => ListaSubContasPorContas(periodoId, grupoId),
     staleTime: 30_000,
   });
 
-  const despesas = (qDespesas.data ?? []) as tyDespesaGrafico[];
-  const entradas = (qEntradas.data ?? []) as tyEntradasGrafico[];
-  const somatoriasFontes = (qSomatorias.data ?? []) as tySomatoriasPeriodo[];
-  const gruposDespesas = (qGrupos.data ?? []) as tySelects[];
-  const subContas = (qSubContas.data ?? []) as tySubGruposGrafico[];
+  // ✅ “estabiliza” as referências (para o lint não reclamar do useMemo dos KPIs)
+  const despesas = useMemo(
+    () => (Array.isArray(qDespesas.data) ? (qDespesas.data as tyDespesaGrafico[]) : []),
+    [qDespesas.data]
+  );
+
+  const entradas = useMemo(
+    () => (Array.isArray(qEntradas.data) ? (qEntradas.data as tyEntradasGrafico[]) : []),
+    [qEntradas.data]
+  );
+
+  const somatoriasFontes = useMemo(
+    () => (Array.isArray(qSomatorias.data) ? (qSomatorias.data as tySomatoriasPeriodo[]) : []),
+    [qSomatorias.data]
+  );
+
+  const gruposDespesas = useMemo(
+    () => (Array.isArray(qGrupos.data) ? (qGrupos.data as tySelects[]) : []),
+    [qGrupos.data]
+  );
+
+  const subContas = useMemo(
+    () => (Array.isArray(qSubContas.data) ? (qSubContas.data as tySubGruposGrafico[]) : []),
+    [qSubContas.data]
+  );
 
   const kpis = useMemo(() => {
     const totalDespesas = sumBy(despesas, (x) => x.valorReal);

@@ -126,12 +126,11 @@ function DashboardInner() {
 
         {/* direita */}
         <aside className="flex flex-col gap-3">
-          <CardConta icone="receitas.png" conta="Receitas" valor={kpis.totalReceitas} detalhes={detalhes.detalhesReceitas} />
-          <CardConta icone="despesas.png" conta="Despesas" valor={kpis.totalDespesas} detalhes={detalhes.detalhesDespesas} />
-
-          <CardConta icone="saldo.png" conta="Saldo disponível" valor={kpis.totalDisponivel} detalhes={detalhes.detalhesDisponivel} />
-          <CardConta icone="receitas.png" conta="Cartões de crédito" valor={kpis.totalCartoes} detalhes={detalhes.detalhesCartoes} />
-          <CardConta icone="investimento.png" conta="Investimentos" valor={kpis.totalInvestimentos} detalhes={detalhes.detalhesInvestimentos} />
+          <CardConta icone="despesas.png" conta="Despesas" />
+          <CardConta icone="receitas.png" conta="Receitas" />
+          <CardConta icone="receitas.png" conta="Cartões de crédito" />
+          <CardConta icone="saldo.png" conta="Saldo disponível" />
+          <CardConta icone="investimento.png" conta="Investimentos" />
         </aside>
       </div>
     </div>

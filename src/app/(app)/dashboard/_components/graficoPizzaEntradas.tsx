@@ -1,84 +1,83 @@
-// src/app/dashboard/_components/graficoPizzaEntradas.tsx
+// src/app/(app)/dashboard/_components/graficoPizzaEntradas.tsx
+"use client";
 
-"use client"
+import { useMemo } from "react";
+import { Pie } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  type ChartData,
+  type ChartOptions,
+} from "chart.js";
 
-import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { useDashboardContext } from './contextDashboardProvider';
-import { useGlobalContext } from '@/app/(app)/contextGlobal';
-import { useEffect } from 'react';
-import { RetEstatisticaEntradas } from '@/app/(app)/actions/graficosActions';
-
+import { useDashboardContext } from "./contextDashboardProvider";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function GraficoPizzaEntradas() {
-  const { dadosPizzaEntradas, setDadosPizzaEntradas } = useDashboardContext();
-  const { periodoId } = useGlobalContext();
+  const { entradas, loading } = useDashboardContext();
 
-  
-  useEffect(() => {
-    async function carregaDados() {
-      const response = await RetEstatisticaEntradas(periodoId);
-      setDadosPizzaEntradas(response);
-    }
-    
-    if(periodoId){
-      carregaDados();
-    }
-  },[periodoId, setDadosPizzaEntradas]);
+  const labels = useMemo(() => entradas.map((e) => e.SubGrupo), [entradas]);
+  const valores = useMemo(() => entradas.map((e) => e.valorReal), [entradas]);
 
-  const data = {
-    labels: dadosPizzaEntradas?.map(e => e.SubGrupo),
-    datasets: [
-      {
-        data: dadosPizzaEntradas?.map(e => e.valorReal),
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.6)',
-          'rgba(168, 85, 247, 0.6)',
-          'rgba(06, 182, 212, 0.6)',
-          'rgba(132, 204, 22, 0.6)',
-          'rgba(245, 158, 11, 0.6)',
-          'rgba(217, 70, 239, 0.6)',
-          'rgba(14, 165, 233, 0.6)',
-          'rgba(34, 197, 94, 0.6)',
-          'rgba(249, 115, 22, 0.6)',
-          'rgba(236, 72, 153, 0.6)',
-          'rgba(59, 130, 246, 0.6)',
-          'rgba(16, 185, 129, 0.6)',
-          'rgba(234, 179, 8, 0.6)',
-        ],
-        borderColor: [
-          'rgba(239, 68, 68, 1)',
-          'rgba(168, 85, 247, 1)',
-          'rgba(06, 182, 212, 1)',
-          'rgba(132, 204, 22, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(217, 70, 239, 1)',
-          'rgba(14, 165, 233, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(249, 115, 22, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(234, 179, 8, 1)',
-        ],
-        borderWidth: 1,
+  const data: ChartData<"pie", number[], string> = useMemo(
+    () => ({
+      labels,
+      datasets: [
+        {
+          data: valores,
+          borderWidth: 1,
+        },
+      ],
+    }),
+    [labels, valores]
+  );
+
+  const options: ChartOptions<"pie"> = useMemo(
+    () => ({
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Distribuição das Entradas" },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = typeof ctx.raw === "number" ? ctx.raw : 0;
+              const brl = new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(v);
+              const lbl = typeof ctx.label === "string" ? ctx.label : "";
+              return lbl ? `${lbl}: ${brl}` : brl;
+            },
+          },
+        },
       },
-    ],
+    }),
+    []
+  );
+
+  if (loading.entradas) {
+    return (
+      <div className="w-full h-72 sm:h-96 rounded-2xl border bg-white flex items-center justify-center text-slate-500">
+        Carregando gráfico...
+      </div>
+    );
   }
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: 'Distribuição das Entradas',
-      },
-    },
+  if (!entradas.length) {
+    return (
+      <div className="w-full h-72 sm:h-96 rounded-2xl border bg-white flex items-center justify-center text-slate-500">
+        Sem dados de entradas para este período.
+      </div>
+    );
   }
-  return <Pie data={data} options={options} />;
+
+  return (
+    <div className="w-full h-72 sm:h-96">
+      <Pie data={data} options={options} />
+    </div>
+  );
 }

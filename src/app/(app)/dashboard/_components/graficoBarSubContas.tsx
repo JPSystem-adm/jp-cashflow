@@ -1,84 +1,93 @@
-// src/app/dashboard/_components/graficoBarSubContas.tsx
+// src/app/(app)/dashboard/_components/graficoBarSubContas.tsx
+"use client";
 
-'use client'
-
+import { useMemo } from "react";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend} from "chart.js";
-import { useDashboardContext } from "./contextDashboardProvider";
-
-ChartJS.register(
+import {
+  Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
   Title,
   Tooltip,
-  Legend
-);
+  Legend,
+  type ChartData,
+  type ChartOptions,
+} from "chart.js";
+
+import { useDashboardContext } from "./contextDashboardProvider";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function GraficoBarSubContas() {
-  const { dadosBarSubContas } = useDashboardContext();
+  const { subContas, loading } = useDashboardContext();
 
-  const data = {
-    labels: dadosBarSubContas.map((subGrupo) => subGrupo.SubGrupo),
-    datasets: [
-      {
-        //label: "Total da conta",
-        data: dadosBarSubContas.map((subGrupo) => subGrupo.valorReal),
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.6)',
-          'rgba(168, 85, 247, 0.6)',
-          'rgba(06, 182, 212, 0.6)',
-          'rgba(132, 204, 22, 0.6)',
-          'rgba(245, 158, 11, 0.6)',
-          'rgba(217, 70, 239, 0.6)',
-          'rgba(14, 165, 233, 0.6)',
-          'rgba(34, 197, 94, 0.6)',
-          'rgba(249, 115, 22, 0.6)',
-          'rgba(236, 72, 153, 0.6)',
-          'rgba(59, 130, 246, 0.6)',
-          'rgba(16, 185, 129, 0.6)',
-          'rgba(234, 179, 8, 0.6)',
-        ],
-        borderColor: [
-          'rgba(239, 68, 68, 1)',
-          'rgba(168, 85, 247, 1)',
-          'rgba(06, 182, 212, 1)',
-          'rgba(132, 204, 22, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(217, 70, 239, 1)',
-          'rgba(14, 165, 233, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(249, 115, 22, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(234, 179, 8, 1)',
-        ],        
-        //backgroundColor: "rgba(252, 211, 77, 0.5)",
-        //borderColor: "rgba(180, 83, 9, 1)",
-        borderWidth: 1,
-      },
-    ],
-  };
+  const labels = useMemo(() => subContas.map((x) => x.SubGrupo), [subContas]);
+  const valores = useMemo(() => subContas.map((x) => x.valorReal), [subContas]);
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false,
-        position: "top" as const,
+  const data: ChartData<"bar", number[], string> = useMemo(
+    () => ({
+      labels,
+      datasets: [
+        {
+          data: valores,
+          borderWidth: 1,
+        },
+      ],
+    }),
+    [labels, valores]
+  );
+
+  const options: ChartOptions<"bar"> = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: "Distribuição das Sub-Contas",
+          color: "rgb(7 89 133)",
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = typeof ctx.raw === "number" ? ctx.raw : 0;
+              return new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(v);
+            },
+          },
+        },
       },
-      title: {
-        color:'rgb(7 89 133)',
-        display: true,
-        text: `Destribuição das Sub-Contas`,
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: "rgba(2, 132, 199, 0.15)" } },
       },
-    },
-  };
+    }),
+    []
+  );
+
+  if (loading.subContas) {
+    return (
+      <div className="w-full h-72 sm:h-96 rounded-2xl border bg-white flex items-center justify-center text-slate-500">
+        Carregando gráfico...
+      </div>
+    );
+  }
+
+  if (!subContas.length) {
+    return (
+      <div className="w-full h-72 sm:h-96 rounded-2xl border bg-white flex items-center justify-center text-slate-500">
+        Selecione uma conta (grupo) para ver as sub-contas.
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Bar data={data} options={options} className="flex max-h-96 min-w-[100%] text-sky-800" />
-    </>
+    <div className="w-full h-72 sm:h-96">
+      <Bar data={data} options={options} />
+    </div>
   );
 }

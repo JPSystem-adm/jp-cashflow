@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

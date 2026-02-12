@@ -65,6 +65,7 @@ export function middleware(req: NextRequest) {
     restPath.startsWith("/cadastros") ||
     restPath.startsWith("/lancamentos") ||
     restPath.startsWith("/agendamentos") ||
+    restPath.startsWith("/about") ||
     restPath.startsWith("/login") ||        // ✅ add
     restPath.startsWith("/cadastro");       // ✅ se existir no app  
 

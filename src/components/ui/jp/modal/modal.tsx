@@ -1,3 +1,5 @@
+// src/components/ui/jp/modal/modal.tsx
+
 "use client"
 
 import { 

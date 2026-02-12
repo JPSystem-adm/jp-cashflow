@@ -25,7 +25,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 import { tipoGrupo } from "@/types/types";
 import type { tyGrupo } from "@/types/types";
@@ -70,6 +72,7 @@ function getSubdomainFromHost(): string | null {
 }
 
 export default function EditaGrupoForm({ pItem, isEdita, setIsEdita }: Props) {
+  const queryClient = useQueryClient();
   const router = useRouter();
 
   // 🔥 Pra forçar logout “completo” (cookie + contexto global)
@@ -178,7 +181,7 @@ export default function EditaGrupoForm({ pItem, isEdita, setIsEdita }: Props) {
         setTipo(tipoEnu.Sucesso);
         setMensagem("Grupo alterado com sucesso!");
         setShowAlerta(true);
-        queryClient.invalidateQueries("grupos");
+        void queryClient.invalidateQueries({ queryKey: ["grupos"] });
         return;
       }
 

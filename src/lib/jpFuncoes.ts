@@ -1,3 +1,5 @@
+// src/lib/jpFuncoes.ts
+
 import { tyVerificacao } from "@/types/types";
 
 /**

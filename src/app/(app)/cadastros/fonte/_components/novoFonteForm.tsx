@@ -38,7 +38,8 @@ import {
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 import { tipoFonte, type tyFonte } from "@/types/types";
 
-import queryClient from "@/lib/reactQuery";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { criarFonte } from "@/app/(app)/actions/fonteAPI";
 
 const schema = z.object({
@@ -66,6 +67,7 @@ function getApiErrorMessage(payload: unknown, fallback: string): string {
 }
 
 export default function NovoFonteForm() {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [showAlerta, setShowAlerta] = useState(false);
   const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
@@ -123,7 +125,8 @@ export default function NovoFonteForm() {
       }
 
       // ✅ mesmo padrão do GRUPOS
-      queryClient.invalidateQueries("fontes");
+      //void queryClient.invalidateQueries({ queryKey: ["grupos"] });
+      void queryClient.invalidateQueries({ queryKey: ["fontes"] });
 
       setTipo(tipoEnu.Sucesso);
       setMensagem("A fonte foi incluída com sucesso!");

@@ -33,7 +33,9 @@ import {
 } from "@/components/ui/form";
 
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { getTokenFromCookie } from "@/lib/getToken";
 import { DoubleToRealBR, RealBRToDouble } from "@/lib/formatacoes";
 
@@ -247,6 +249,7 @@ export default function EditaLancamento({
   setIsEdita,
 }: Props) {
   const { periodoId } = useGlobalContext();
+  const queryClient = useQueryClient();
 
   const {
     grupoId,
@@ -401,7 +404,9 @@ export default function EditaLancamento({
       setShowAlerta(true);
 
       // ✅ atualiza a tabela sem reload
-      await queryClient.refetchQueries(["lancamentos"]);
+      await queryClient.refetchQueries({
+        queryKey: ["lancamentos"],
+      });
       return;
     }
 

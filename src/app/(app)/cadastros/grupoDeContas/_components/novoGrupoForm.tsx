@@ -22,7 +22,8 @@ import { FaChevronDown } from "react-icons/fa";
 import { criarGrupo } from "@/app/(app)/actions/grupoAPI";
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { tyGrupoSubGrupo, tySubGrupo, tipoGrupo } from "@/types/types";
 import TabelaSubGrupos from "./tabelaSubGrupos";
@@ -41,6 +42,7 @@ const schema = z.object({
 type FormProps = z.infer<typeof schema>;
 
 export default function NovoGrupoForm() {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [subGruposP, setSubGruposP] = useState<tySubGrupo[]>([]);
   const [showAlerta, setShowAlerta] = useState(false);
@@ -78,7 +80,7 @@ export default function NovoGrupoForm() {
       if (retorno.status < 300) {
         setTipo(tipoEnu.Sucesso);
         setMensagem("A conta foi incluida com sucesso!");
-        queryClient.invalidateQueries("grupos");
+        void queryClient.invalidateQueries({ queryKey: ["grupos"] });
       } else if (retorno.status === 401) {
         setTipo(tipoEnu.Erro);
         setMensagem("Grupo já cadastrado!");

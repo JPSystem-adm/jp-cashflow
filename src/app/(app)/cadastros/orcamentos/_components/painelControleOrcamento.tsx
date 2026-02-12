@@ -2,11 +2,11 @@
 
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useOrcamentoContext } from "./contextProvider";
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
@@ -26,34 +26,36 @@ export default function PainelControleOrcamento() {
 
   const periodoValido = periodoId > 0;
 
-  // 1) Buscar orçamentos do período
-  const { data: rows = [], isLoading } = useQuery(
-    ["orcamentos", periodoId],
-    () => listarOrcamentos(periodoId),
-    {
-      enabled: periodoValido,
-      refetchOnWindowFocus: false,
-      retry: 0,
-      initialData: [],
-      onSuccess: (data: OrcamentoRow[]) => {
-        // mantém Context sincronizado com o cache do react-query
-        setDados(data);
-      },
-    }
-  );
+  // 1) Buscar orçamentos do período (TanStack v5)
+  const { data: rows = [], isLoading } = useQuery<OrcamentoRow[], Error>({
+    queryKey: ["orcamentos", periodoId],
+    enabled: periodoValido,
+    refetchOnWindowFocus: false,
+    retry: 0,
+    queryFn: async (): Promise<OrcamentoRow[]> => {
+      if (!periodoValido) return [];
+      const res = await listarOrcamentos(periodoId);
+      return Array.isArray(res) ? res : [];
+    },
+  });
+
+  // Mantém Context sincronizado com o cache (v5 não tem onSuccess no useQuery)
+  useEffect(() => {
+    setDados(rows);
+  }, [rows, setDados]);
 
   // 2) Contar quantos grupos ativos existem (pra saber se tem grupos novos)
-  const { data: qtdGrupos = 0, isLoading: isLoadingGrupos } = useQuery(
-    ["orcamentos-qtd-grupos", periodoId],
-    () => contarGruposAtivos(periodoId),
-    {
-      enabled: periodoValido,
-      refetchOnWindowFocus: false,
-      retry: 0,
-      initialData: 0,
-    }
-  );
-
+  const { data: qtdGrupos = 0, isLoading: isLoadingGrupos } = useQuery<number, Error>({
+    queryKey: ["orcamentos-qtd-grupos", periodoId],
+    enabled: periodoValido,
+    refetchOnWindowFocus: false,
+    retry: 0,
+    queryFn: async (): Promise<number> => {
+      if (!periodoValido) return 0;
+      const n = await contarGruposAtivos(periodoId);
+      return typeof n === "number" && Number.isFinite(n) ? n : 0;
+    },
+  });
   const temOrcamentos = useMemo(() => rows.length > 0, [rows.length]);
 
   // regra dos botões (igual ao Saldo)
@@ -69,8 +71,8 @@ export default function PainelControleOrcamento() {
     try {
       await gerarOrcamentos(periodoId);
 
-      await qc.invalidateQueries(["orcamentos", periodoId]);
-      await qc.invalidateQueries(["orcamentos-qtd-grupos", periodoId]);
+      await qc.invalidateQueries({ queryKey: ["orcamentos", periodoId] });
+      await qc.invalidateQueries({ queryKey: ["orcamentos-qtd-grupos", periodoId] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao criar orçamentos";
       alert(msg);
@@ -81,8 +83,8 @@ export default function PainelControleOrcamento() {
     try {
       await atualizarOrcamentos(periodoId);
 
-      await qc.invalidateQueries(["orcamentos", periodoId]);
-      await qc.invalidateQueries(["orcamentos-qtd-grupos", periodoId]);
+      await qc.invalidateQueries({ queryKey: ["orcamentos", periodoId] });
+      await qc.invalidateQueries({ queryKey: ["orcamentos-qtd-grupos", periodoId] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao atualizar orçamentos";
       alert(msg);

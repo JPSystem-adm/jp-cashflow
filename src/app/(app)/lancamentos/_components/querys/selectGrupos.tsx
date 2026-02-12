@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { useLancamentoContext } from "@/app/(app)/lancamentos/_components/contextLancamentoProvider";
 import { listarGruposAtivos } from "@/app/(app)/actions/lancamentoAPI";
@@ -37,16 +37,14 @@ export default function ComboGrupos({ pai }: Props) {
 
   const selectedId = pai === "Form" ? formGrupoId : grupoId;
 
-  const { data, isLoading } = useQuery<GrupoApi[]>(
-    ["grupos-ativos"],
-    async () => {
+  const { data, isLoading } = useQuery<GrupoApi[]>({
+    queryKey: ["grupos-ativos"],
+    queryFn: async (): Promise<GrupoApi[]> => {
       const grupos = await listarGruposAtivos();
-      return grupos;
+      return Array.isArray(grupos) ? grupos : [];
     },
-    {
-      refetchOnWindowFocus: false,
-    }
-  );
+    refetchOnWindowFocus: false,
+  });
 
   const gruposFiltrados = useMemo(() => {
     const grupos = Array.isArray(data) ? data : [];

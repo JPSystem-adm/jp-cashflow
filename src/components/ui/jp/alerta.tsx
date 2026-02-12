@@ -1,3 +1,5 @@
+// src/components/ui/jp/alerta.tsx
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,

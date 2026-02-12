@@ -2,7 +2,6 @@
 "use client";
 
 import "react-datepicker/dist/react-datepicker.css";
-
 import {
   Table,
   TableBody,
@@ -15,19 +14,15 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLancamentoContext } from "./contextLancamentoProvider";
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
-
 import type { tyLancamento } from "@/types/types";
 import { DoubleToRealBR } from "@/lib/formatacoes";
-
 import { useMemo, useState } from "react";
-import queryClient from "@/lib/reactQuery";
-
+import { useQueryClient } from "@tanstack/react-query";
 import ConfirmationBox from "@/app/(app)/_components/confirmationBox";
 import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import EditaLancamentoForm from "./editaLancamento";
 import NovoLancamentosForm from "./LancamentosForm";
 import ExportaTabela from "./exportarTabela";
-
 import type { OperacaoLancamento } from "@/app/(app)/actions/lancamentoAPI";
 import { excluirLancamento } from "@/app/(app)/actions/lancamentoAPI";
 
@@ -121,6 +116,7 @@ function LancamentoCard({ item, onEdit, onDelete }: LancamentoCardProps) {
 
 export default function TabelaLancamentos() {
   const { periodoId } = useGlobalContext();
+  const queryClient = useQueryClient();
 
   const {
     dados,
@@ -169,7 +165,9 @@ export default function TabelaLancamentos() {
   const handleConfirm = async () => {
     await excluirLancamento(indice);
 
-    queryClient.refetchQueries(["lancamentos", periodoId, grupoId, subGrupoId, fonteId]);
+    queryClient.refetchQueries({
+      queryKey: ["lancamentos", periodoId, grupoId, subGrupoId, fonteId],
+    });
 
     setShowConfirmation(false);
   };

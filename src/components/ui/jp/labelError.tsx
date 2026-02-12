@@ -1,3 +1,5 @@
+// src/components/ui/jp/labelError.tsx
+
 'use client'
 
 export default function LabelError({children}: any){

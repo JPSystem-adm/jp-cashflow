@@ -24,7 +24,8 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { RealBRToDouble, DoubleToRealBR } from "@/lib/formatacoes";
 import { useSaldoContext } from "./contextSaldosProvider";
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
-import { useQueryClient } from "react-query";
+//import { useQueryClient } from "react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { atualizarValorSaldo } from "@/app/(app)/actions/saldoAPI";
 
@@ -44,9 +45,11 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function FormSaldo({ indice, isEdita, setIsEdita }: Props) {
+  const queryClient = useQueryClient();
+
   const { rows } = useSaldoContext(); // ✅ SaldoRow[]
   const { periodoId } = useGlobalContext();
-  const qc = useQueryClient();
+  //const qc = useQueryClient();
 
   const item = useMemo(() => rows[indice], [rows, indice]);
 
@@ -79,7 +82,7 @@ export default function FormSaldo({ indice, isEdita, setIsEdita }: Props) {
       const valorNum = RealBRToDouble(values.valor);
       await atualizarValorSaldo(saldoId, valorNum);
 
-      await qc.invalidateQueries(["saldos", periodoId]);
+      await queryClient.invalidateQueries({ queryKey: ["saldos", periodoId] });
       handleClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao atualizar saldo";

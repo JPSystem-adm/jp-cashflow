@@ -42,7 +42,8 @@ import {
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
 import { tipoFonte, type tyFonte } from "@/types/types";
 
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { atualizarFonte } from "@/app/(app)/actions/fonteAPI";
 
 type JsonObject = Record<string, unknown>;
@@ -77,6 +78,7 @@ const schema = z.object({
 type FormProps = z.infer<typeof schema>;
 
 export default function EditaFonteForm({ pItem, isEdita, setIsEdita }: Props) {
+  const queryClient = useQueryClient();
   const [showAlerta, setShowAlerta] = useState(false);
   const [tipo, setTipo] = useState<tipoEnu>(tipoEnu.Alerta);
   const [mensagem, setMensagem] = useState("Mensagem");
@@ -131,7 +133,7 @@ export default function EditaFonteForm({ pItem, isEdita, setIsEdita }: Props) {
         return;
       }
 
-      queryClient.invalidateQueries("fontes");
+      void queryClient.invalidateQueries({ queryKey: ["fontes"] });
 
       setTipo(tipoEnu.Sucesso);
       setMensagem("A fonte foi alterada com sucesso!");

@@ -1,3 +1,5 @@
+// src/app/(app)/cadastros/usuarios/_components/resetaSenha.tsx
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

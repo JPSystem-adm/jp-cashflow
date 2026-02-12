@@ -1,5 +1,4 @@
 // src/app/(app)/cadastros/saldos/_components/painelControleSaldo.tsx
-
 "use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
@@ -8,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { tySomatoriasPeriodo } from "@/types/types";
 
 import { ensurePeriodo } from "@/app/(app)/actions/periodoAPI";
 import { listarSaldos, gerarSaldos, atualizarSaldos } from "@/app/(app)/actions/saldoAPI";
@@ -16,6 +16,7 @@ import { useSaldoContext } from "./contextSaldosProvider";
 
 export default function PainelControleSaldo() {
   const qc = useQueryClient();
+
   const { periodo, periodoId, setPeriodoId } = useGlobalContext();
   const { setRows } = useSaldoContext();
 
@@ -31,7 +32,7 @@ export default function PainelControleSaldo() {
 
       try {
         const id = await ensurePeriodo(periodo);
-        if (id > 0) setPeriodoId(id);
+        if (typeof id === "number" && id > 0) setPeriodoId(id);
       } catch (e) {
         console.error("Falha ao garantir período no painel de saldos:", e);
       }
@@ -42,17 +43,18 @@ export default function PainelControleSaldo() {
 
   const periodoValido = periodoId > 0;
 
-  // 2) Buscar saldos do período (somente quando periodoId estiver ok)
-  const { data: rows = [], isLoading } = useQuery(
-    ["saldos", periodoId],
-    () => listarSaldos(periodoId),
-    {
-      enabled: periodoValido,
-      refetchOnWindowFocus: false,
-      retry: 0,
-      initialData: [],
-    }
-  );
+  // 2) Buscar saldos do período (TanStack v5: assinatura por objeto)
+  const { data: rows = [], isLoading } = useQuery<tySomatoriasPeriodo[], Error>({
+    queryKey: ["saldos", periodoId],
+    enabled: periodoValido,
+    refetchOnWindowFocus: false,
+    retry: 0,
+    queryFn: async (): Promise<tySomatoriasPeriodo[]> => {
+      if (!periodoValido) return [];
+      const res = await listarSaldos(periodoId);
+      return Array.isArray(res) ? (res as tySomatoriasPeriodo[]) : [];
+    },
+  });
 
   // ✅ 2.1) Sincroniza com o contexto (isso destrava a tabela)
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function PainelControleSaldo() {
   const onCriar = async () => {
     try {
       await gerarSaldos(periodo);
-      await qc.invalidateQueries(["saldos", periodoId]);
+      await qc.invalidateQueries({ queryKey: ["saldos", periodoId] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao criar saldos";
       alert(msg);
@@ -78,7 +80,7 @@ export default function PainelControleSaldo() {
   const onAtualizar = async () => {
     try {
       await atualizarSaldos(periodoId);
-      await qc.invalidateQueries(["saldos", periodoId]);
+      await qc.invalidateQueries({ queryKey: ["saldos", periodoId] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao atualizar saldos";
       alert(msg);

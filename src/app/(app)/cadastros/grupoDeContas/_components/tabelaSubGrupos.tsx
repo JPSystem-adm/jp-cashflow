@@ -3,7 +3,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useQuery } from "react-query";
+//import { useQuery } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +40,8 @@ function mkResult(status: "Sucesso" | "Erro", menssagem: string): tyResult {
 }
 
 export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP }: Props) {
+  const queryClient = useQueryClient();
+
   const [subGrupos, setSubGrupos] = useState<tySubGrupo[]>(dados);
   const [isEdita, setIsEdita] = useState<boolean>(false);
   const [indexSG, setIndexSG] = useState<number>(0);
@@ -62,20 +66,18 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
 
   const shouldFetch = origem === "Edicao" && grupoId > 0;
 
-  const { isLoading, isError, error } = useQuery<tySubGrupo[], Error>(
-    ["subgrupos-do-grupo", grupoId],
-    async () => {
+  const { isLoading, isError, error } = useQuery<tySubGrupo[], Error>({
+    queryKey: ["subgrupos-do-grupo", grupoId],
+    enabled: shouldFetch,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 0,
+    queryFn: async (): Promise<tySubGrupo[]> => {
       const list = await listarSubGruposDoGrupo(grupoId);
       sync(list);
       return list;
     },
-    {
-      enabled: shouldFetch,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      retry: 0,
-    }
-  );
+  });
 
   const listaOrdenada = useMemo(() => {
     return [...subGrupos].sort((a, b) => a.nome.localeCompare(b.nome));
@@ -92,7 +94,7 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
     if (origem === "Novo") {
       const next = [...subGrupos, { ...item, nome, ativo: item.ativo ?? true }];
       sync(next);
-      queryClient.invalidateQueries("grupos");
+      void queryClient.invalidateQueries({ queryKey: ["grupos"] });
       return mkResult("Sucesso", "Subgrupo incluído (pendente de salvar o grupo).");
     }
 
@@ -113,8 +115,10 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
       }
 
       // Recarrega a lista oficial da API (mais seguro)
-      queryClient.invalidateQueries(["subgrupos-do-grupo", grupoId]);
-      queryClient.invalidateQueries("grupos");
+      void queryClient.invalidateQueries({
+        queryKey: ["subgrupos-do-grupo", grupoId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["grupos"] });
       return mkResult("Sucesso", "Subgrupo criado com sucesso!");
     } catch (e) {
       return mkResult("Erro", e instanceof Error ? e.message : "Erro inesperado ao criar subgrupo.");
@@ -140,7 +144,7 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
     if (origem === "Novo") {
       const next = subGrupos.map((sg) => (sg.nome === nome ? { ...sg, ...novosDados } : sg));
       sync(next);
-      queryClient.invalidateQueries("grupos");
+      void queryClient.invalidateQueries({ queryKey: ["grupos"] });
       return true;
     }
 
@@ -165,8 +169,10 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
       return false;
     }
 
-    queryClient.invalidateQueries(["subgrupos-do-grupo", grupoId]);
-    queryClient.invalidateQueries("grupos");
+    void queryClient.invalidateQueries({
+      queryKey: ["subgrupos-do-grupo", grupoId],
+    });
+    void queryClient.invalidateQueries({ queryKey: ["grupos"] });
     return true;
   }
 
@@ -178,7 +184,7 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
     if (origem === "Novo") {
       const next = subGrupos.filter((_, i) => i !== index);
       sync(next);
-      queryClient.invalidateQueries("grupos");
+      void queryClient.invalidateQueries({ queryKey: ["grupos"] });
       return;
     }
 
@@ -206,8 +212,10 @@ export default function TabelaSubGrupos({ origem, grupoId, dados, setSubGruposP 
       return;
     }
 
-    queryClient.invalidateQueries(["subgrupos-do-grupo", grupoId]);
-    queryClient.invalidateQueries("grupos");
+    void queryClient.invalidateQueries({
+      queryKey: ["subgrupos-do-grupo", grupoId],
+    });
+    void queryClient.invalidateQueries({ queryKey: ["grupos"] });
   }
 
   if (isLoading) {

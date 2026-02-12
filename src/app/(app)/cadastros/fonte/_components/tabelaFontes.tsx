@@ -3,8 +3,8 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "react-query";
-
+//import { useQuery } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
 import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import ConfirmationBox from "@/app/(app)/_components/confirmationBox";
 import EditaFonteForm from "./editaFonte";
@@ -33,6 +33,7 @@ function retTipo(tipo: tipoFonte | string | undefined): string {
 }
 
 export default function TabelaFontes() {
+  const queryClient = useQueryClient();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [indice, setIndice] = useState<number>(0);
   const [item, setItem] = useState<tyFonte | undefined>(undefined);
@@ -43,8 +44,12 @@ export default function TabelaFontes() {
     isLoading,
     isError,
     error,
-  } = useQuery<tyFonte[], Error>("fontes", listarFontes, {
-    initialData: [],
+  } = useQuery<tyFonte[], Error>({
+    queryKey:["fontes"], 
+    queryFn: async (): Promise<tyFonte[]> => {
+    const res = await listarFontes();
+    return Array.isArray(res) ? res : [];
+  },
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 0,
@@ -68,7 +73,7 @@ export default function TabelaFontes() {
 
   const handleConfirm = async () => {
     await excluirFonte(indice);
-    queryClient.invalidateQueries("fontes");
+    void queryClient.invalidateQueries({ queryKey: ["fontes"] });
     setShowConfirmation(false);
   };
 

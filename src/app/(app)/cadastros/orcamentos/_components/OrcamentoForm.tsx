@@ -16,7 +16,8 @@ import { useOrcamentoContext } from "./contextProvider";
 import { RealBRToDouble, DoubleToRealBR } from "@/lib/formatacoes";
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
 
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { atualizarValorOrcamento } from "@/app/(app)/actions/orcamentoAPI";
 
 type Props = {
@@ -34,6 +35,8 @@ const schema = z.object({
 });
 
 export default function FormOrcamento({ indice, isEdita, setIsEdita }: Props) {
+  const queryClient = useQueryClient();
+
   const { dados } = useOrcamentoContext();
   const { periodoId } = useGlobalContext();
 
@@ -57,7 +60,7 @@ export default function FormOrcamento({ indice, isEdita, setIsEdita }: Props) {
       await atualizarValorOrcamento(orcamentoId, novoValor);
 
       // atualiza tabela
-      queryClient.refetchQueries(["orcamentos", periodoId]);
+      await queryClient.refetchQueries({ queryKey: ["orcamentos", periodoId] });
 
       handleClose();
     } catch (e) {

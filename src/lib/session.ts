@@ -1,3 +1,5 @@
+// src/lib/session.ts
+
 "use client";
 
 import { getTokenFromCookie } from "@/lib/getToken";

@@ -1,3 +1,5 @@
+// src/lib/estilosExcelJs.ts
+
 import { Style } from 'exceljs';
 
 /**

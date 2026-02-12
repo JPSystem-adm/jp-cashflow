@@ -1,24 +1,20 @@
 // src/app/(app)/lancamentos/_components/painelFiltros.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import { startOfMonth, endOfMonth } from "date-fns";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Calendar } from "lucide-react";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
 import { useLancamentoContext } from "./contextLancamentoProvider";
 import type { tyLancamento } from "@/types/types";
-
 import ComboGrupos from "./querys/selectGrupos";
 import ComboSubGrupos from "./querys/selectSubGrupos";
 import ComboFontes from "./querys/selectFontes";
-
 import { retDataDoPeriodo } from "@/lib/formatacoes";
 import { listarLancamentos } from "@/app/(app)/actions/lancamentoAPI";
 
@@ -61,9 +57,11 @@ export default function PainelFiltros() {
   const firstDayOfMonth = useMemo(() => startOfMonth(selDate), [selDate]);
   const lastDayOfMonth = useMemo(() => endOfMonth(selDate), [selDate]);
 
-  useQuery(
-    ["lancamentos", periodoId, grupoId, subGrupoId, fonteId],
-    async () => {
+  const { data } = useQuery<tyLancamento[]>({
+    queryKey: ["lancamentos", periodoId, grupoId, subGrupoId, fonteId],
+    enabled: Boolean(periodoId),
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<tyLancamento[]> => {
       if (!periodoId) return [];
 
       const response = await listarLancamentos({
@@ -73,16 +71,13 @@ export default function PainelFiltros() {
         fonteId: fonteId > 0 ? fonteId : undefined,
       });
 
-      const dadosLanc: tyLancamento[] = response as unknown as tyLancamento[];
-
-      setDados(dadosLanc);
-      return dadosLanc;
+      return response as unknown as tyLancamento[];
     },
-    {
-      enabled: Boolean(periodoId),
-      refetchOnWindowFocus: false,
-    }
-  );
+  });
+
+  useEffect(() => {
+    if (data) setDados(data);
+  }, [data, setDados]);
 
   return (
     <Card className="w-full border-sky-900 border-2">

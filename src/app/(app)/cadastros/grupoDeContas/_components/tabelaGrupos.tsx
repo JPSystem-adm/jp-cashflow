@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,7 @@ import {
   Table,
 } from "@/components/ui/table";
 
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
 import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import ConfirmationBox from "@/app/(app)/_components/confirmationBox";
 import EditaGrupoForm from "./editaGrupo";
@@ -29,6 +29,7 @@ import type { tyGrupo, tyGrupoLista } from "@/types/types";
 import { tipoGrupo } from "@/types/types";
 
 export default function TabelaGrupos() {
+  const queryClient = useQueryClient();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [indice, setIndice] = useState(0);
   const [item, setItem] = useState<tyGrupo | undefined>(undefined);
@@ -39,8 +40,12 @@ export default function TabelaGrupos() {
     isLoading,
     isError,
     error,
-  } = useQuery<tyGrupoLista[], Error>("grupos", listarGrupos, {
-    initialData: [],
+  } = useQuery<tyGrupoLista[], Error>({
+    queryKey: ["grupos"],
+    queryFn: async (): Promise<tyGrupoLista[]> => {
+      const res = await listarGrupos();
+      return Array.isArray(res) ? res : [];
+    },
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 0,
@@ -64,7 +69,7 @@ export default function TabelaGrupos() {
 
   const handleConfirm = async () => {
     await excluirGrupo(indice);
-    queryClient.invalidateQueries("grupos");
+    void queryClient.invalidateQueries({ queryKey: ["grupos"] });
     setShowConfirmation(false);
   };
 

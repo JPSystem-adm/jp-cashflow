@@ -9,8 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import queryClient from "@/lib/reactQuery";
-
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -88,6 +87,7 @@ function toDateOnlyLocal(d: Date): string {
 
 export default function LancamentosForm({ open, onOpenChange }: Props) {
   const { periodoId, periodo } = useGlobalContext();
+  const queryClient = useQueryClient();
 
   const {
     formGrupoId,
@@ -205,7 +205,9 @@ export default function LancamentosForm({ open, onOpenChange }: Props) {
       const retorno = await CriarLancamento(payload);
 
       // ✅ atualiza automaticamente a lista (sem reload)
-      await queryClient.refetchQueries(["lancamentos"]);
+      await queryClient.refetchQueries({
+        queryKey: ["lancamentos"],
+      });
 
       setTipo(tipoEnu.Sucesso);
       setMensagem(retorno.message);

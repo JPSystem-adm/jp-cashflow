@@ -9,7 +9,6 @@ import ClientDrawer from "./_components/ClientDrawer";
 import BottomNav from "./_components/BottomNav";
 
 import { Query2ClientProvider } from "@/lib/queryProvider";
-import queryClient from "@/lib/reactQuery";
 import { GlobalProvider } from "./contextGlobal";
 import Cabecalho from "./cabecalho/cabecalho";
 import Rodape from "./rodape/rodape";
@@ -44,25 +43,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" className="light" suppressHydrationWarning>
       <body className={inter.className}>
-        <Query2ClientProvider client={queryClient}>
+        {/* Provider do React Query (CLIENT) */}
+        <Query2ClientProvider>
+          {/* Provider global da aplicação */}
           <GlobalProvider userId={0}>
             <Cabecalho />
 
             <div className="flex min-h-dvh flex-col pt-14 sm:pt-14">
               <ClientDrawer tenant={tenant ?? undefined} />
 
-              {/* Conteúdo: mais compacto no mobile + espaço pro BottomNav */}
+              {/* Conteúdo principal */}
               <main className="flex flex-1 flex-col items-center bg-white pb-16 sm:pb-0">
                 <div className="w-full max-w-6xl px-3 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-4">
                   {children}
                 </div>
               </main>
 
-              {/* Desktop mantém rodapé, mobile troca por BottomNav */}
+              {/* Rodapé só no desktop */}
               <div className="hidden sm:block">
                 <Rodape />
               </div>
 
+              {/* Navegação mobile */}
               <BottomNav />
             </div>
           </GlobalProvider>

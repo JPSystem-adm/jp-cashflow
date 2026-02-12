@@ -4,7 +4,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 //import { useQuery } from "react-query";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,8 @@ import {
 
 import { FileEditIcon, TrashIcon } from "@/app/(app)/_components/iconsForm";
 import { WarningBox, tipoEnu } from "@/app/(app)/_components/warningBox";
-import queryClient from "@/lib/reactQuery";
+//import queryClient from "@/lib/reactQuery";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import NovoSubGrupo from "./novoSubGrupo";
 import EditaSubGrupo from "./editaSubGrupo";

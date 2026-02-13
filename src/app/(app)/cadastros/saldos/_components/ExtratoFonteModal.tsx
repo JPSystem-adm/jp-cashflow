@@ -1,5 +1,4 @@
 // src/app/(app)/cadastros/saldos/_components/ExtratoFonteModal.tsx
-
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -59,7 +58,9 @@ async function fetchExtrato(params: {
   token: string;
 }): Promise<ExtratoResponse> {
   const apiBase = getApiBase();
-  const url = `${apiBase}/api/private/restrita/saldo/extrato?periodoId=${params.periodoId}&fonteId=${params.fonteId}`;
+  const url =
+    `${apiBase}/api/private/restrita/saldo/extrato` +
+    `?periodoId=${params.periodoId}&fonteId=${params.fonteId}`;
 
   const res = await fetch(url, {
     method: "GET",
@@ -149,8 +150,21 @@ export default function ExtratoFonteModal({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/50" onClick={close} />
 
-      <div className="absolute inset-x-0 top-10 mx-auto w-[min(980px,92vw)] rounded-2xl bg-white shadow-xl border border-slate-200">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+      {/* Caixa do modal: ocupa até 90% da altura (90vh), responsivo */}
+      <div
+        className="
+          absolute left-1/2 top-4 -translate-x-1/2
+          w-[min(980px,92vw)]
+          max-h-[90vh]
+          rounded-2xl bg-white shadow-xl border border-slate-200
+          flex flex-col
+          overflow-hidden
+        "
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header fixo */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0">
           <div className="min-w-0">
             <div className="text-lg font-bold text-sky-950 truncate">
               Extrato da fonte: {fonteNome}
@@ -163,7 +177,8 @@ export default function ExtratoFonteModal({
           </Button>
         </div>
 
-        <div className="p-4">
+        {/* Corpo rolável (aqui fica a rolagem) */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
           {loading ? (
             <div className="text-slate-600">Carregando extrato...</div>
           ) : error ? (
@@ -177,15 +192,16 @@ export default function ExtratoFonteModal({
                 </div>
               </div>
 
-              <div className="w-full overflow-x-auto">
+              {/* Scroll horizontal só se precisar; vertical fica no corpo do modal */}
+              <div className="w-full overflow-x-auto rounded-xl border border-slate-200">
                 <Table className="min-w-[760px]">
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-white z-10">
                     <TableRow>
-                      <TableHead className="text-center">Data</TableHead>
+                      <TableHead className="text-center w-[120px]">Data</TableHead>
                       <TableHead>Descrição</TableHead>
-                      <TableHead className="text-center">Entrada</TableHead>
-                      <TableHead className="text-center">Saída</TableHead>
-                      <TableHead className="text-center">Saldo</TableHead>
+                      <TableHead className="text-center w-[140px]">Entrada</TableHead>
+                      <TableHead className="text-center w-[140px]">Saída</TableHead>
+                      <TableHead className="text-center w-[160px]">Saldo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -198,15 +214,17 @@ export default function ExtratoFonteModal({
                     ) : (
                       data.linhas.map((l) => (
                         <TableRow key={l.id}>
-                          <TableCell className="text-center">{formatDateBR(l.data)}</TableCell>
+                          <TableCell className="text-center whitespace-nowrap">
+                            {formatDateBR(l.data)}
+                          </TableCell>
                           <TableCell className="break-words">{l.descricao || "-"}</TableCell>
-                          <TableCell className="text-center text-green-700 font-semibold">
+                          <TableCell className="text-center text-green-700 font-semibold whitespace-nowrap">
                             {l.entrada ? DoubleToRealBR(l.entrada) : ""}
                           </TableCell>
-                          <TableCell className="text-center text-red-700 font-semibold">
+                          <TableCell className="text-center text-red-700 font-semibold whitespace-nowrap">
                             {l.saida ? DoubleToRealBR(l.saida) : ""}
                           </TableCell>
-                          <TableCell className="text-center font-semibold">
+                          <TableCell className="text-center font-semibold whitespace-nowrap">
                             {DoubleToRealBR(l.saldo)}
                           </TableCell>
                         </TableRow>
@@ -225,7 +243,8 @@ export default function ExtratoFonteModal({
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-slate-200 flex justify-end">
+        {/* Footer fixo */}
+        <div className="px-4 py-3 border-t border-slate-200 flex justify-end shrink-0">
           <Button variant="outline" onClick={close}>
             Fechar
           </Button>

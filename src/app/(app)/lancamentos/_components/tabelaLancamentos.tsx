@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useLancamentoContext } from "./contextLancamentoProvider";
 import { useGlobalContext } from "@/app/(app)/contextGlobal";
+import { useLancamentoContext } from "./contextLancamentoProvider";
 import type { tyLancamento } from "@/types/types";
 import { DoubleToRealBR } from "@/lib/formatacoes";
 import { useMemo, useState } from "react";
@@ -33,17 +33,13 @@ type LancamentoCardProps = {
 };
 
 function normalizeOperacao(op: unknown): OperacaoLancamento {
-  // D/C/M antigos viram "M" no front
   return op === "T" ? "T" : "M";
 }
 
 function formatDateOnlyBR(value: string): string {
-  // espera "YYYY-MM-DD"
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!m) return "";
-  const day = m[3];
-  const month = m[2];
-  return `${day}/${month}`; // dd/MM
+  return `${m[3]}/${m[2]}`;
 }
 
 function LancamentoCard({ item, onEdit, onDelete }: LancamentoCardProps) {
@@ -54,8 +50,7 @@ function LancamentoCard({ item, onEdit, onDelete }: LancamentoCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sky-900 font-semibold text-base truncate">
-            {item.grupo} <span className="text-sky-700">/</span>{" "}
-            {item.subGrupo}
+            {item.grupo} <span className="text-sky-700">/</span> {item.subGrupo}
           </div>
 
           <div className="text-sky-800 text-sm mt-1 break-words">
@@ -151,7 +146,6 @@ export default function TabelaLancamentos() {
     if (novaPagina < 1) return;
     if (novaPagina > totalPaginas) return;
     setCurrentPage(novaPagina);
-    // opcional: volta pro topo da lista no mobile
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -172,9 +166,7 @@ export default function TabelaLancamentos() {
     setShowConfirmation(false);
   };
 
-  const handleCancel = () => {
-    setShowConfirmation(false);
-  };
+  const handleCancel = () => setShowConfirmation(false);
 
   const handleDeleteLancamentos = (id: number) => {
     setIndice(id);
@@ -186,7 +178,6 @@ export default function TabelaLancamentos() {
     setFormSubGrupoId(item.subGrupoId || 0);
     setFormFonteIdO(item.fonteId || 0);
     setFormFonteIdD(item.fonteIdD ?? null);
-
     setOperacao(normalizeOperacao(item.operacao));
 
     setIndice(id);
@@ -195,7 +186,7 @@ export default function TabelaLancamentos() {
   };
 
   return (
-    <div className="w-full pb-24 sm:pb-0">
+    <div className="w-full">
       {showConfirmation && (
         <ConfirmationBox
           title="Confirmação!"
@@ -214,8 +205,8 @@ export default function TabelaLancamentos() {
         />
       )}
 
-      {/* Top actions responsivas */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between mt-4">
+      {/* ✅ Top actions: centralizado e ocupando largura */}
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex justify-start">
           <ExportaTabela />
         </div>
@@ -236,88 +227,92 @@ export default function TabelaLancamentos() {
         ))}
       </div>
 
-      {/* ✅ DESKTOP: tabela */}
-      <div className="hidden sm:block w-full overflow-x-auto mt-4 mb-6">
-        <Table className="min-w-[1200px] rounded-2xl p-2 border-sky-800 border-2 shadow">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center border-2 w-[10%] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Conta
-              </TableHead>
-              <TableHead className="text-center border-2 w-[15%] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Sub Conta
-              </TableHead>
-              <TableHead className="text-center border-2 w-[30%] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Descrição
-              </TableHead>
-              <TableHead className="text-center border-2 w-[10%] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Valor
-              </TableHead>
-              <TableHead className="text-center border-2 w-[15%] min-w-[200px] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Fonte
-              </TableHead>
-              <TableHead className="text-center border-2 w-[10%] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Data
-              </TableHead>
-              <TableHead className="text-center border-2 w-[10%] min-w-[110px] text-sky-50 border-sky-700 bg-sky-900 text-lg">
-                Ações
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {registrosPaginaAtual.map((item) => (
-              <TableRow className="hover:bg-slate-200" key={item.lancamentoId}>
-                <TableCell className="text-center border-2 text-sky-800 border-sky-900 text-lg">
-                  {item.grupo}
-                </TableCell>
-                <TableCell className="text-center border-2 text-sky-800 border-sky-900 text-lg">
-                  {item.subGrupo}
-                </TableCell>
-                <TableCell className="text-center border-2 text-sky-800 border-sky-900 text-lg">
-                  {item.descricao}
-                </TableCell>
-                <TableCell className="text-center border-2 text-sky-800 border-sky-900 text-lg">
-                  {DoubleToRealBR(item.valor || 0)}
-                </TableCell>
-                <TableCell className="text-center border-2 whitespace-pre-wrap text-sky-800 border-sky-900 text-lg">
-                  {item.fontes}
-                </TableCell>
-                <TableCell className="text-center border-2 text-sky-800 border-sky-900 text-lg">
-                  {item.dtLancamento ? formatDateOnlyBR(item.dtLancamento) : ""}
-                </TableCell>
-
-                <TableCell className="text-center border-2 text-sky-800 border-sky-900">
-                  <div className="flex justify-center gap-2 px-2">
-                    <Button
-                      onClick={() => handleEditLancamento(item.lancamentoId || 0, item)}
-                      className="h-9 w-9"
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <FileEditIcon className="h-6 w-6" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-
-                    <Button
-                      onClick={() => handleDeleteLancamentos(item.lancamentoId || 0)}
-                      className="h-9 w-9"
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <TrashIcon className="h-6 w-6 text-red-700" />
-                      <span className="sr-only">Excluir</span>
-                    </Button>
-                  </div>
-                </TableCell>
+      {/* ✅ DESKTOP: tabela (mais larga, fonte menor, sem “folga” inútil) */}
+      <div className="hidden sm:block mt-4">
+        <div className="w-full overflow-x-auto rounded-2xl border-2 border-sky-800 shadow">
+          <Table className="w-full min-w-[1100px] text-sm lg:text-xs">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs w-[10%]">
+                  Conta
+                </TableHead>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs w-[14%]">
+                  Sub Conta
+                </TableHead>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs w-[28%]">
+                  Descrição
+                </TableHead>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs w-[10%]">
+                  Valor
+                </TableHead>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs min-w-[180px] w-[18%]">
+                  Fonte
+                </TableHead>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs w-[8%]">
+                  Data
+                </TableHead>
+                <TableHead className="text-center border-2 border-sky-700 bg-sky-900 text-sky-50 font-semibold text-sm lg:text-xs min-w-[120px] w-[12%]">
+                  Ações
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+
+            <TableBody>
+              {registrosPaginaAtual.map((item) => (
+                <TableRow className="hover:bg-slate-100" key={item.lancamentoId}>
+                  <TableCell className="text-center border-2 border-sky-900 text-sky-800 whitespace-nowrap py-2">
+                    {item.grupo}
+                  </TableCell>
+                  <TableCell className="text-center border-2 border-sky-900 text-sky-800 whitespace-nowrap py-2">
+                    {item.subGrupo}
+                  </TableCell>
+                  <TableCell className="border-2 border-sky-900 text-sky-800 py-2">
+                    <div className="line-clamp-2 break-words text-center">
+                      {item.descricao}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center border-2 border-sky-900 text-sky-800 whitespace-nowrap py-2">
+                    {DoubleToRealBR(item.valor || 0)}
+                  </TableCell>
+                  <TableCell className="text-center border-2 border-sky-900 text-sky-800 whitespace-pre-wrap py-2">
+                    {item.fontes}
+                  </TableCell>
+                  <TableCell className="text-center border-2 border-sky-900 text-sky-800 whitespace-nowrap py-2">
+                    {item.dtLancamento ? formatDateOnlyBR(item.dtLancamento) : ""}
+                  </TableCell>
+
+                  <TableCell className="text-center border-2 border-sky-900 py-1">
+                    <div className="flex justify-center gap-1 px-2">
+                      <Button
+                        onClick={() => handleEditLancamento(item.lancamentoId || 0, item)}
+                        className="h-8 w-8"
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <FileEditIcon className="h-5 w-5" />
+                        <span className="sr-only">Editar</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleDeleteLancamentos(item.lancamentoId || 0)}
+                        className="h-8 w-8"
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <TrashIcon className="h-5 w-5 text-red-700" />
+                        <span className="sr-only">Excluir</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
-      {/* ✅ Paginação: */}
-      <div className="mt-3 flex items-center justify-between gap-2">
+      {/* ✅ Paginação: centralizada + com “respiro” inferior real */}
+      <div className="mt-6 mb-10 flex items-center justify-center gap-3">
         <Button
           type="button"
           variant="outline"
@@ -328,7 +323,7 @@ export default function TabelaLancamentos() {
           <ChevronLeft className="h-5 w-5" />
         </Button>
 
-        <span className="text-sm font-semibold text-slate-700">
+        <span className="min-w-[90px] text-center text-sm font-semibold text-slate-700">
           {currentPage}/{totalPaginas}
         </span>
 

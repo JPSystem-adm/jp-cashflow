@@ -150,6 +150,17 @@ export default function ClientDrawer({ tenant }: Props) {
 
             <Link
               className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
+              href={withTenant(tenantNorm, "/jogos/sudoku")}
+              onClick={handleLinkClick}
+            >
+              <IconAbout className="w-6 h-6 mr-3" />
+              <span className="text-base xs:text-sm sm:text-lg xl:text-xl 2xl:text-2xl flex items-center">
+                Sudoku
+              </span>
+            </Link>
+
+            <Link
+              className="flex items-center w-full px-3 py-4 hover:bg-sky-800"
               href={withTenant(tenantNorm, "/about")}
               onClick={handleLinkClick}
             >
@@ -158,6 +169,7 @@ export default function ClientDrawer({ tenant }: Props) {
                 Sobre
               </span>
             </Link>
+
           </nav>
         </DrawerContent>
       </Drawer>
